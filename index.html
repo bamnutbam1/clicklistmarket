@@ -16,7 +16,7 @@ body{font-family:'Sarabun',sans-serif;background:#111;color:#e8e8e8;font-size:14
 
 /* TABS */
 .tabs{display:flex;background:#0d0d0d;border-bottom:1px solid #333;overflow-x:auto}
-.tab-btn{flex:1;min-width:100px;padding:10px 5px;background:transparent;border:none;color:#888;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;text-align:center}
+.tab-btn{flex:1;min-width:80px;padding:10px 5px;background:transparent;border:none;color:#888;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;text-align:center}
 .tab-btn:hover{color:#ccc;background:#141414}
 .tab-btn.active{color:#f0a500;border-bottom-color:#f0a500;background:#1a1a1a}
 
@@ -86,6 +86,16 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 .row-del{background:transparent;border:none;cursor:pointer;color:#3a3a3a;font-size:.8rem;padding:2px 6px;border-radius:3px;transition:all .15s}
 .row-del:hover{color:#e53935;background:#2a1a1a}
 
+/* DASHBOARD */
+.dashboard-container { padding: 15px; color: #e8e8e8; max-height:calc(100vh - 160px); overflow-y:auto; display:none; }
+.dash-card { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+.dash-card h3 { color: #f0a500; font-size: 1rem; margin-bottom: 12px; display:flex; align-items:center; gap:6px; border-bottom: 1px solid #333; padding-bottom: 8px;}
+.dash-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #2a2a2a; font-size: 0.9rem; align-items:center;}
+.dash-row:last-child { border-bottom: none; }
+.dash-val { font-weight: bold; color: #4caf50; font-size: 1.1rem;}
+.dash-day-btn { background:#242424; color:#f0a500; border:1px solid #444; border-radius:5px; padding:6px 12px; cursor:pointer; font-weight:700; font-family:inherit; font-size:0.85rem;}
+.dash-day-btn:hover { background:#333; border-color:#f0a500;}
+
 /* EDIT SECTION MODAL */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center}
 .modal-bg.show{display:flex}
@@ -123,29 +133,34 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 <!-- STATUS BAR -->
 <div class="status-bar" id="statusBar"></div>
 
-<!-- SUMMARY -->
-<div class="summary">
+<!-- SUMMARY (Hide in Dashboard) -->
+<div class="summary" id="summaryBar">
   <div class="sum-item" title="รวมทุกแท็บ"><div class="sum-lbl">รายการรวม</div><div class="sum-val" id="sumTotal">0</div></div>
   <div class="sum-item" title="รวมทุกแท็บ"><div class="sum-lbl">ซื้อแล้ว</div><div class="sum-val g" id="sumChecked">0</div></div>
   <div class="sum-item" title="รวมทุกแท็บ"><div class="sum-lbl">ยอดรวมทั้งหมด</div><div class="sum-val" id="sumGrand">฿0</div></div>
 </div>
 
-<!-- ACTIONS -->
-<div class="actions">
+<!-- ACTIONS (Hide in Dashboard) -->
+<div class="actions" id="actionsBar">
   <button class="btn btn-save" id="btnSave" onclick="saveDay()">💾 บันทึกข้อมูล</button>
   <button class="btn btn-reset" onclick="resetDay()">🔄 ล้างวันนี้</button>
   <button class="btn" style="background:#1e3a5f;color:#90caf9;border:1px solid #1976d2" onclick="addCustomRowUI()">＋ เพิ่มรายการ</button>
   <button class="btn" style="background:#2d3a2d;color:#81c784;border:1px solid #4caf50" onclick="addSection()">＋ เพิ่มหมวด</button>
 </div>
 
-<!-- DAYS BAR -->
-<div class="days-bar">
+<!-- DAYS BAR (Hide in Dashboard) -->
+<div class="days-bar" id="daysBar">
   <span class="days-label">📅 บันทึกแล้ว:</span>
   <div id="daysChips"><span class="days-empty">ยังไม่มี</span></div>
 </div>
 
+<!-- DASHBOARD CONTAINER -->
+<div class="dashboard-container" id="dashboardContainer">
+  <!-- เรนเดอร์แดชบอร์ดที่นี่ -->
+</div>
+
 <!-- TABLE -->
-<div class="grid">
+<div class="grid" id="mainGrid">
   <table id="mainTable">
     <thead>
       <tr>
@@ -183,7 +198,9 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVuP5GxiGCPLLcxy3Vr
 const TABS = [
   { id: "tab1", name: "🛒 ตลาด 1" },
   { id: "tab2", name: "🛍️ ตลาด 2" },
-  { id: "tab3", name: "🏪 เซเว่น / อื่นๆ" }
+  { id: "tab3", name: "🏪 เซเว่น / อื่นๆ" },
+  { id: "tab4", name: "🏢 แม็คโคร" },
+  { id: "dashboard", name: "📊 แดชบอร์ด" }
 ];
 
 let currentTab = "tab1";
@@ -212,6 +229,11 @@ const DEFAULT_SECTIONS = [
   // --- แท็บ 3: เซเว่น / อื่นๆ ---
   { id: "s6", tabId: "tab3", label: "🏪 ของใช้ทั่วไป", color: "#009688", items: [
     "น้ำดื่ม", "ทิชชู่", "ยาสีฟัน", "สบู่", "กาแฟ"
+  ]},
+
+  // --- แท็บ 4: แม็คโคร ---
+  { id: "s7", tabId: "tab4", label: "🏢 ของแห้ง/ยกลัง แม็คโคร", color: "#e53935", items: [
+    "น้ำมันพืชยกลัง", "น้ำตาลทรายกระสอบ", "ข้าวสาร", "ซอสปรุงรสแกลลอน", "แพคเกจจิ้ง/กล่องข้าว"
   ]}
 ];
 
@@ -221,7 +243,6 @@ const Storage = {
     const saved = localStorage.getItem("sections");
     if (saved) {
       let parsed = JSON.parse(saved);
-      // Migrate ของเก่าที่ไม่มี tabId ให้ไปอยู่ tab1
       parsed = parsed.map(s => s.tabId ? s : { ...s, tabId: "tab1" });
       return parsed;
     }
@@ -236,7 +257,7 @@ const Storage = {
   },
   saveDayData: (dateStr, rowsObj, grand) => {
     let days = Storage.getSavedDays();
-    days = days.filter(d => d.date !== dateStr);
+    days = days.filter(d => d.date !== dateStr); // ทับของเก่าวันที่เดิมในเครื่อง
     days.push({ date: dateStr, rows: rowsObj, grand: grand });
     days.sort((a, b) => a.date.localeCompare(b.date));
     localStorage.setItem("savedDays", JSON.stringify(days));
@@ -272,7 +293,7 @@ function init() {
     savedDays = Storage.getSavedDays();
     initRows();
     renderTabs();
-    renderTable();
+    switchTab(currentTab); // ควบคุมการแสดงผลตามแท็บที่โหลด
     renderDays();
     renderSummary();
     setStatus("✅ โหลดข้อมูลแล้ว", "ok");
@@ -295,7 +316,111 @@ function renderTabs() {
 function switchTab(tabId) {
   currentTab = tabId;
   renderTabs();
-  renderTable();
+  
+  const grid = document.getElementById('mainGrid');
+  const actions = document.getElementById('actionsBar');
+  const summary = document.getElementById('summaryBar');
+  const daysBar = document.getElementById('daysBar');
+  const dashboard = document.getElementById('dashboardContainer');
+
+  if (tabId === 'dashboard') {
+    // ซ่อน UI ปกติ, แสดงแดชบอร์ด
+    grid.style.display = 'none';
+    actions.style.display = 'none';
+    summary.style.display = 'none';
+    daysBar.style.display = 'none';
+    dashboard.style.display = 'block';
+    renderDashboard();
+  } else {
+    // แสดง UI ปกติ
+    grid.style.display = 'block';
+    actions.style.display = 'flex';
+    summary.style.display = 'flex';
+    daysBar.style.display = 'flex';
+    dashboard.style.display = 'none';
+    renderTable();
+    renderSummary();
+  }
+}
+
+// ──────────── DASHBOARD ────────────
+function renderDashboard() {
+  const days = Storage.getSavedDays();
+  const container = document.getElementById("dashboardContainer");
+  
+  if (days.length === 0) {
+    container.innerHTML = `<div class="dash-card"><p style="text-align:center;color:#888;padding:20px 0;">ยังไม่มีประวัติการบันทึกข้อมูล</p></div>`;
+    return;
+  }
+
+  let totalAll = 0;
+  days.forEach(d => totalAll += (d.grand || 0));
+
+  let html = `
+    <div class="dash-card">
+      <h3>📊 ภาพรวมทั้งหมด</h3>
+      <div class="dash-row">
+        <span>จำนวนวันที่บันทึก:</span>
+        <span style="color:#42a5f5; font-weight:bold;">${days.length} วัน</span>
+      </div>
+      <div class="dash-row" style="border-bottom:none;">
+        <span>ยอดใช้จ่ายสะสม:</span>
+        <span class="dash-val">฿${totalAll.toLocaleString()}</span>
+      </div>
+    </div>
+
+    <div class="dash-card">
+      <h3>📅 ประวัติรายวัน (โหลดกลับมาแก้ได้)</h3>
+  `;
+
+  // เรียงวันที่ล่าสุดขึ้นก่อน
+  const sortedDays = [...days].sort((a,b) => b.date.localeCompare(a.date));
+  
+  sortedDays.forEach(d => {
+    // นับจำนวนรายการที่ซื้อ/มีราคา ของวันนั้นๆ
+    let itemCount = 0;
+    if(d.rows) {
+      Object.values(d.rows).forEach(r => {
+        if(r.checked || parseFloat(r.price)>0) itemCount++;
+      });
+    }
+
+    html += `
+      <div class="dash-row">
+        <div>
+          <span style="color:#f0a500; font-weight:bold;">${d.date}</span>
+          <div style="font-size:0.75rem; color:#888; margin-top:3px;">${itemCount} รายการ</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+          <span class="dash-val">฿${(d.grand||0).toLocaleString()}</span>
+          <button class="dash-day-btn" onclick="loadDayData('${d.date}')" title="โหลดข้อมูลนี้">โหลด 🔄</button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+// โหลดข้อมูลเก่าจาก LocalStorage กลับมาแสดงในตาราง
+function loadDayData(dateStr) {
+  const days = Storage.getSavedDays();
+  const dayData = days.find(d => d.date === dateStr);
+  if(dayData && dayData.rows) {
+    currentDate = dateStr;
+    document.getElementById("dateInput").value = dateStr;
+    
+    // โคลนข้อมูลกลับมาใส่ rows ปัจจุบัน
+    rows = JSON.parse(JSON.stringify(dayData.rows));
+    
+    // เผื่อมีรายการหรือหมวดใหม่ที่ถูกเพิ่มหลังจากการบันทึก ให้ merge คืนด้วย
+    initRows(true);
+    
+    // สลับกลับไปหน้าตลาด 1
+    switchTab('tab1');
+    showToast("📥 โหลดประวัติ " + dateStr + " เรียบร้อย", "#1976d2");
+  }
 }
 
 // ──────────── ROWS INIT ────────────
@@ -308,8 +433,8 @@ function initRows(keepExisting) {
     });
   });
   
-  // สร้างแถวเปล่าๆ เริ่มต้นไว้ 5 แถว "สำหรับแต่ละแท็บ"
-  TABS.forEach(tab => {
+  // สร้างแถวเปล่าๆ เริ่มต้นไว้ 5 แถว "สำหรับแต่ละแท็บ (ยกเว้นแดชบอร์ด)"
+  TABS.filter(t => t.id !== 'dashboard').forEach(tab => {
     for (let i = 1; i <= 5; i++) {
       const k = "custom_" + tab.id + "_" + i;
       if (!rows[k]) rows[k] = { name: "", sectionId: "custom", tabId: tab.id, isCustom: true, checked: false, unit: "", price: "" };
@@ -319,6 +444,8 @@ function initRows(keepExisting) {
 
 // ──────────── RENDER TABLE ────────────
 function renderTable() {
+  if (currentTab === 'dashboard') return; // กันพังถ้าเผลอเรียก
+
   const tbody = document.getElementById("tableBody");
   tbody.innerHTML = "";
 
@@ -608,7 +735,7 @@ async function saveDay() {
   setStatus("⏳ กำลังบันทึกไปที่ Google Sheet...", "loading");
   document.getElementById("btnSave").disabled = true;
 
-  // เตรียมข้อมูลส่งไปที่ Google Sheet (เอามาจากทุกแท็บ)
+  // เตรียมข้อมูลส่งไปที่ Google Sheet (เอามาจากทุกแท็บ ยกเว้น Dashboard)
   const payloadItems = [];
   Object.values(rows).forEach(r => {
      if ((r.checked || parseFloat(r.price) > 0) && r.name.trim() !== "") {
@@ -638,7 +765,7 @@ async function saveDay() {
   try {
       const count = Storage.saveDayData(currentDate, rows, grand);
       savedDays = Storage.getSavedDays();
-      renderDays();
+      if(currentTab === 'dashboard') renderDashboard(); else renderDays();
 
       const response = await fetch(SCRIPT_URL, {
           method: "POST",
@@ -648,8 +775,8 @@ async function saveDay() {
       
       const result = await response.json();
       if (result.status === "success") {
-          showToast("✅ บันทึกลง Sheet สำเร็จ", "#2e7d32");
-          setStatus("✅ บันทึกข้อมูลลง Google Sheet และเครื่องแล้ว", "ok");
+          showToast("✅ บันทึกและอัปเดต Sheet สำเร็จ", "#2e7d32");
+          setStatus("✅ บันทึกข้อมูลและลบของเก่าใน Google Sheet เรียบร้อย", "ok");
       } else {
           throw new Error(result.message);
       }
@@ -687,6 +814,7 @@ function removeSavedDay(dateStr) {
   Storage.deleteDay(dateStr);
   savedDays = Storage.getSavedDays();
   renderDays();
+  if (currentTab === 'dashboard') renderDashboard();
   showToast("🗑️ ลบวัน " + dateStr + " แล้ว");
 }
 
