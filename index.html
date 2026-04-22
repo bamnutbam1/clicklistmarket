@@ -35,6 +35,8 @@ body{font-family:'Sarabun',sans-serif;background:#111;color:#e8e8e8;font-size:14
 .btn-save:disabled{background:#2a3a2a;color:#555;cursor:not-allowed}
 .btn-reset{background:transparent;color:#e53935;border:1px solid #e53935}
 .btn-reset:hover{background:#e53935;color:#fff}
+.btn-batch{background:#5e35b1;color:#fff;border:1px solid #7e57c2}
+.btn-batch:hover{background:#512da8}
 
 /* DAYS BAR */
 .days-bar{background:#181818;border-bottom:1px solid #333;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -96,10 +98,10 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 .dash-day-btn { background:#242424; color:#f0a500; border:1px solid #444; border-radius:5px; padding:6px 12px; cursor:pointer; font-weight:700; font-family:inherit; font-size:0.85rem;}
 .dash-day-btn:hover { background:#333; border-color:#f0a500;}
 
-/* EDIT SECTION MODAL */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center}
+/* MODALS */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center}
 .modal-bg.show{display:flex}
-.modal{background:#1a1a1a;border:1px solid #444;border-radius:12px;padding:20px;width:320px;max-width:95vw}
+.modal{background:#1a1a1a;border:1px solid #444;border-radius:12px;padding:20px;width:340px;max-width:95vw}
 .modal h3{font-size:.9rem;font-weight:700;color:#f0a500;margin-bottom:12px}
 .modal input{width:100%;background:#242424;border:1px solid #444;color:#e8e8e8;padding:8px 10px;border-radius:7px;font-family:inherit;font-size:.88rem;margin-bottom:10px}
 .modal input:focus{outline:none;border-color:#f0a500}
@@ -113,8 +115,6 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 .toast.show{display:flex}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid #666;border-top-color:#f0a500;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes flash{0%{background:rgba(240,165,0,.3)}100%{background:transparent}}
-.flash{animation:flash 1.5s ease}
 </style>
 </head>
 <body>
@@ -144,6 +144,7 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 <div class="actions" id="actionsBar">
   <button class="btn btn-save" id="btnSave" onclick="saveDay()">💾 บันทึกข้อมูล</button>
   <button class="btn btn-reset" onclick="resetDay()">🔄 ล้างวันนี้</button>
+  <button class="btn btn-batch" onclick="startBatchVoice()">🎤 พูดรวดเดียว</button>
   <button class="btn" style="background:#1e3a5f;color:#90caf9;border:1px solid #1976d2" onclick="addCustomRowUI()">＋ เพิ่มรายการ</button>
   <button class="btn" style="background:#2d3a2d;color:#81c784;border:1px solid #4caf50" onclick="addSection()">＋ เพิ่มหมวด</button>
 </div>
@@ -173,6 +174,17 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
     </thead>
     <tbody id="tableBody"></tbody>
   </table>
+</div>
+
+<!-- BATCH VOICE MODAL -->
+<div class="modal-bg" id="voiceModalBg">
+  <div class="modal" style="text-align:center">
+    <h3 id="voiceStatusTitle" style="font-size:1.1rem; margin-bottom:5px;">🎤 กำลังฟัง...</h3>
+    <p style="color:#aaa; font-size:0.8rem; margin-bottom:15px;">พูดชื่อรายการตามด้วยราคาติดกันได้เลย<br>เช่น <span style="color:#4caf50">"หมูสับ 100 เนื้อวัว 200 น้ำปลา 50"</span></p>
+    <div id="voiceTranscript" style="min-height:60px; max-height:120px; overflow-y:auto; background:#111; border:1px solid #333; border-radius:8px; padding:10px; margin-bottom:15px; color:#f0a500; font-style:italic; font-size:0.9rem; text-align:left;">...</div>
+    <button class="btn btn-save" style="width:100%; justify-content:center; padding:10px; font-size:1rem;" onclick="stopBatchVoice()">✅ หยุดและประมวลผล</button>
+    <button class="btn" style="width:100%; justify-content:center; padding:8px; margin-top:8px; background:transparent; border:1px solid #555; color:#aaa;" onclick="cancelBatchVoice()">✕ ยกเลิก</button>
+  </div>
 </div>
 
 <!-- EDIT SECTION MODAL -->
@@ -279,6 +291,10 @@ let activeRecognition = null;
 let modalCallback = null;
 let speechSupported = ("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
 
+// สถานะการพูดรวดเดียว
+let batchRec = null;
+let batchTranscript = "";
+
 // ──────────── INIT ────────────
 document.getElementById("dateInput").value = currentDate;
 document.getElementById("dateInput").addEventListener("change", e => {
@@ -324,7 +340,6 @@ function switchTab(tabId) {
   const dashboard = document.getElementById('dashboardContainer');
 
   if (tabId === 'dashboard') {
-    // ซ่อน UI ปกติ, แสดงแดชบอร์ด
     grid.style.display = 'none';
     actions.style.display = 'none';
     summary.style.display = 'none';
@@ -332,7 +347,6 @@ function switchTab(tabId) {
     dashboard.style.display = 'block';
     renderDashboard();
   } else {
-    // แสดง UI ปกติ
     grid.style.display = 'block';
     actions.style.display = 'flex';
     summary.style.display = 'flex';
@@ -373,11 +387,9 @@ function renderDashboard() {
       <h3>📅 ประวัติรายวัน (โหลดกลับมาแก้ได้)</h3>
   `;
 
-  // เรียงวันที่ล่าสุดขึ้นก่อน
   const sortedDays = [...days].sort((a,b) => b.date.localeCompare(a.date));
   
   sortedDays.forEach(d => {
-    // นับจำนวนรายการที่ซื้อ/มีราคา ของวันนั้นๆ
     let itemCount = 0;
     if(d.rows) {
       Object.values(d.rows).forEach(r => {
@@ -403,7 +415,6 @@ function renderDashboard() {
   container.innerHTML = html;
 }
 
-// โหลดข้อมูลเก่าจาก LocalStorage กลับมาแสดงในตาราง
 function loadDayData(dateStr) {
   const days = Storage.getSavedDays();
   const dayData = days.find(d => d.date === dateStr);
@@ -411,13 +422,8 @@ function loadDayData(dateStr) {
     currentDate = dateStr;
     document.getElementById("dateInput").value = dateStr;
     
-    // โคลนข้อมูลกลับมาใส่ rows ปัจจุบัน
     rows = JSON.parse(JSON.stringify(dayData.rows));
-    
-    // เผื่อมีรายการหรือหมวดใหม่ที่ถูกเพิ่มหลังจากการบันทึก ให้ merge คืนด้วย
     initRows(true);
-    
-    // สลับกลับไปหน้าตลาด 1
     switchTab('tab1');
     showToast("📥 โหลดประวัติ " + dateStr + " เรียบร้อย", "#1976d2");
   }
@@ -433,7 +439,6 @@ function initRows(keepExisting) {
     });
   });
   
-  // สร้างแถวเปล่าๆ เริ่มต้นไว้ 5 แถว "สำหรับแต่ละแท็บ (ยกเว้นแดชบอร์ด)"
   TABS.filter(t => t.id !== 'dashboard').forEach(tab => {
     for (let i = 1; i <= 5; i++) {
       const k = "custom_" + tab.id + "_" + i;
@@ -444,16 +449,14 @@ function initRows(keepExisting) {
 
 // ──────────── RENDER TABLE ────────────
 function renderTable() {
-  if (currentTab === 'dashboard') return; // กันพังถ้าเผลอเรียก
+  if (currentTab === 'dashboard') return;
 
   const tbody = document.getElementById("tableBody");
   tbody.innerHTML = "";
 
-  // ดึงเฉพาะหมวดหมู่ของแท็บปัจจุบัน
   const activeSections = sections.filter(sec => sec.tabId === currentTab);
 
   activeSections.forEach(sec => {
-    // Section header
     const htr = document.createElement("tr");
     htr.className = "sec-hdr";
     htr.innerHTML = `
@@ -466,12 +469,10 @@ function renderTable() {
       </td>`;
     tbody.appendChild(htr);
 
-    // Item rows
     Object.entries(rows).filter(([,r]) => r.sectionId === sec.id).forEach(([k, r]) => {
       tbody.appendChild(makeRow(k, r));
     });
 
-    // Total row
     const total = Object.values(rows).filter(r => r.sectionId === sec.id)
       .reduce((a, r) => a + (parseFloat(r.price) || 0), 0);
     const ttr = document.createElement("tr");
@@ -483,7 +484,6 @@ function renderTable() {
     tbody.appendChild(ttr);
   });
 
-  // Custom section สำหรับแท็บปัจจุบัน
   const ctr = document.createElement("tr");
   ctr.className = "sec-hdr";
   ctr.innerHTML = `<td colspan="5" style="color:#f0a500;border-left:3px solid #f0a500">✏️ รายการเพิ่มเติม</td>`;
@@ -493,7 +493,6 @@ function renderTable() {
     tbody.appendChild(makeCustomRow(k, r));
   });
 
-  // Grand total ของแท็บปัจจุบัน
   const tabGrand = Object.values(rows).filter(r => r.tabId === currentTab).reduce((a, r) => a + (parseFloat(r.price) || 0), 0);
   const gtr = document.createElement("tr");
   gtr.className = "grand-row";
@@ -586,7 +585,7 @@ function updateRow(k, field, val) {
 
 function updateSectionTotal(sectionId) {
   if (!sectionId || sectionId === "custom") return;
-  renderTable(); // simple full re-render
+  renderTable(); 
 }
 
 function deleteRow(k) {
@@ -646,7 +645,6 @@ function addSection() {
   });
 }
 
-// ฟังก์ชันสำหรับเพิ่มบรรทัดใหม่ในแท็บปัจจุบัน
 function addCustomRowUI() {
   const k = "custom_" + currentTab + "_" + Date.now();
   rows[k] = { name: "", sectionId: "custom", tabId: currentTab, isCustom: true, checked: false, unit: "", price: "" };
@@ -657,7 +655,7 @@ function addCustomRowUI() {
   }, 50);
 }
 
-// ──────────── VOICE INPUT ────────────
+// ──────────── SINGLE VOICE INPUT ────────────
 function startVoice(rowKey) {
   if (!speechSupported) { showToast("❌ เบราว์เซอร์นี้ไม่รองรับ Voice"); return; }
 
@@ -725,6 +723,137 @@ function extractNumber(text) {
   return null;
 }
 
+// ──────────── BATCH VOICE INPUT (พูดรวดเดียว) ────────────
+function startBatchVoice() {
+  if (!speechSupported) { showToast("❌ เบราว์เซอร์ไม่รองรับ Voice", "#d32f2f"); return; }
+  
+  batchTranscript = "";
+  document.getElementById("voiceTranscript").textContent = "...กำลังรอเสียง...";
+  document.getElementById("voiceStatusTitle").innerHTML = "🎤 กำลังฟัง (พูดรวดเดียว)...";
+  document.getElementById("voiceModalBg").classList.add("show");
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  batchRec = new SpeechRecognition();
+  batchRec.lang = "th-TH";
+  batchRec.continuous = true;
+  batchRec.interimResults = true;
+  
+  batchRec.onresult = (e) => {
+      let interim = "";
+      let final = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) {
+              final += e.results[i][0].transcript;
+          } else {
+              interim += e.results[i][0].transcript;
+          }
+      }
+      if (final) batchTranscript += final + " ";
+      document.getElementById("voiceTranscript").textContent = batchTranscript + interim;
+  };
+  
+  batchRec.onerror = (e) => {
+      document.getElementById("voiceStatusTitle").innerHTML = "❌ ผิดพลาด: " + e.error;
+  };
+  
+  batchRec.onend = () => {
+      // ถ้าหยุดฟังเองแล้ว UI ยังค้างอยู่ แสดงว่ากดหยุดไม่ทัน หรือแอปตัดเสียง
+      if(document.getElementById("voiceModalBg").classList.contains("show")) {
+          document.getElementById("voiceStatusTitle").innerHTML = "⏸️ หยุดฟังแล้ว (กำลังประมวลผล...)";
+      }
+  };
+  
+  batchRec.start();
+}
+
+function cancelBatchVoice() {
+  if (batchRec) {
+      batchRec.stop();
+      batchRec = null;
+  }
+  document.getElementById("voiceModalBg").classList.remove("show");
+}
+
+function stopBatchVoice() {
+  if (batchRec) {
+      batchRec.stop();
+      batchRec = null;
+  }
+  document.getElementById("voiceModalBg").classList.remove("show");
+  
+  if (batchTranscript.trim()) {
+      processBatchTranscript(batchTranscript);
+  }
+}
+
+// ตัดคำและจับคู่แบบ Fuzzy
+function processBatchTranscript(text) {
+  // ลบคำที่ไม่ต้องการออกเพื่อเตรียมจับคู่ด้วย Regex
+  let cleaned = text.replace(/บาท|ราคา|ละ|กิโล/g, " ");
+  
+  // ใช้ Regex แยก (ข้อความ) และ (ตัวเลข) ที่อยู่ติดกัน: หาอักขระที่ไม่ใช่ตัวเลข ไปจนเจอตัวเลขแรก
+  const regex = /([^\d]+)(\d+)/g;
+  let match;
+  const updates = [];
+  
+  while ((match = regex.exec(cleaned)) !== null) {
+      let itemNameRaw = match[1].trim();
+      let price = match[2];
+      
+      if (itemNameRaw && price) {
+          let matchedKey = findBestMatch(itemNameRaw);
+          if (matchedKey) {
+              updates.push({ key: matchedKey, name: rows[matchedKey].name, price: price });
+          }
+      }
+  }
+  
+  if (updates.length > 0) {
+      updates.forEach(u => {
+          rows[u.key].price = u.price;
+          rows[u.key].checked = true; // ติ๊กถูกให้อัตโนมัติ
+      });
+      renderTable();
+      renderSummary();
+      
+      const names = updates.map(u => u.name).join(", ");
+      showToast(`✅ อัปเดต ${updates.length} รายการ: ${names}`, "#2e7d32");
+  } else {
+      showToast("⚠️ ไม่พบรายการและราคาที่ตรงกัน (ลองพูดใหม่ดูครับ)", "#f57c00");
+  }
+}
+
+// อัลกอริทึมเดาชื่อสินค้า
+function findBestMatch(spokenText) {
+  let bestKey = null;
+  let maxMatchCount = 0;
+  
+  // เอาคำสร้อยออก และตัดช่องว่างทิ้งหมด
+  let text = spokenText.replace(/ซื้อ|เอา|เพิ่ม|ไซส์|ขนาด/g, '').replace(/\s+/g, '');
+  if(!text) return null;
+  
+  for (let k in rows) {
+      let itemName = rows[k].name;
+      if (!itemName) continue;
+      
+      let itemClean = itemName.replace(/\s+/g, '');
+      
+      // 1. ตรงเป๊ะๆ
+      if (itemClean === text) return k;
+      
+      // 2. ตรงบางส่วน (คำพูดเรามีชื่อสินค้าแฝงอยู่ หรือ ชื่อสินค้าเรามีคำพูดแฝงอยู่)
+      if (itemClean.includes(text) || text.includes(itemClean)) {
+          let score = Math.min(itemClean.length, text.length);
+          // ต้องตรงกันอย่างน้อย 2 ตัวอักษรขึ้นไป กันจับคู่มั่ว
+          if (score > maxMatchCount && score >= 2) {
+              maxMatchCount = score;
+              bestKey = k;
+          }
+      }
+  }
+  return bestKey;
+}
+
 // ──────────── SAVE (ผูกกับ Google Sheet) ────────────
 async function saveDay() {
   const grand = Object.values(rows).reduce((a, r) => a + (parseFloat(r.price) || 0), 0);
@@ -735,7 +864,6 @@ async function saveDay() {
   setStatus("⏳ กำลังบันทึกไปที่ Google Sheet...", "loading");
   document.getElementById("btnSave").disabled = true;
 
-  // เตรียมข้อมูลส่งไปที่ Google Sheet (เอามาจากทุกแท็บ ยกเว้น Dashboard)
   const payloadItems = [];
   Object.values(rows).forEach(r => {
      if ((r.checked || parseFloat(r.price) > 0) && r.name.trim() !== "") {
@@ -746,7 +874,7 @@ async function saveDay() {
          const tabName = tabDef ? tabDef.name.replace(/[^ก-ฮะ-์a-zA-Z0-9 ]/g, '').trim() : "ตลาด 1";
 
          payloadItems.push({
-             tab: tabName,       // แท็บที่ของชิ้นนี้อยู่
+             tab: tabName,
              section: secName,
              name: r.name,
              price: parseFloat(r.price) || 0,
@@ -821,7 +949,6 @@ function removeSavedDay(dateStr) {
 // ──────────── SUMMARY ────────────
 function renderSummary() {
   let total = 0, checked = 0, grand = 0;
-  // Summary คิดจากทุกแท็บรวมกัน เพื่อให้พร้อมสำหรับการกด Save ครั้งเดียว
   Object.values(rows).forEach(r => {
     if (!r.isCustom || r.name) { total++; if (r.checked) checked++; }
     grand += parseFloat(r.price) || 0;
