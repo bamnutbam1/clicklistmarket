@@ -45,8 +45,8 @@ body{font-family:'Sarabun',sans-serif;background:#111;color:#e8e8e8;font-size:14
 .status-bar.ok{color:#66bb6a}.status-bar.err{color:#ef5350}.status-bar.loading{color:#f0a500}.status-bar.info{color:#42a5f5}
 
 /* TABLE */
-.grid{overflow-x:auto;max-height:calc(100vh - 280px);overflow-y:auto}
-table{width:100%;border-collapse:collapse;min-width:480px}
+.grid{overflow-x:auto;max-height:calc(100vh - 280px);overflow-y:auto;scroll-behavior: smooth;}
+table{width:100%;border-collapse:collapse;min-width:500px}
 thead{position:sticky;top:0;z-index:10}
 thead th{background:#1f1f1f;padding:6px 8px;font-size:.68rem;color:#666;text-align:center;font-weight:600;border:1px solid #333;text-transform:uppercase}
 thead th:first-child{text-align:left}
@@ -66,8 +66,8 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 .cell-in{width:100%;background:transparent;border:none;color:#e8e8e8;font-family:inherit;font-size:.82rem;padding:5px 7px;text-align:center}
 .cell-in:focus{outline:none;background:#1e1e1e}
 .cell-in.price{color:#f0a500}
-.cell-in.price-wrap{display:flex;align-items:center;background:transparent}
-.cell-in.price-wrap input{flex:1}
+.cell-in.price-wrap{display:flex;align-items:center;background:transparent;padding:0 5px}
+.cell-in.price-wrap input{flex:1;text-align:left}
 .mic-btn{background:transparent;border:none;cursor:pointer;padding:3px 5px;border-radius:4px;font-size:.85rem;color:#555;transition:all .15s;flex-shrink:0}
 .mic-btn:hover{color:#f0a500;background:#222}
 .mic-btn.active{color:#e53935;animation:pulse .8s infinite}
@@ -79,8 +79,6 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 .grand-row td{background:#0d0d0d;border-top:2px solid #f0a500;padding:8px 12px;font-size:.95rem;font-weight:800}
 .row-del{background:transparent;border:none;cursor:pointer;color:#3a3a3a;font-size:.8rem;padding:2px 6px;border-radius:3px;transition:all .15s}
 .row-del:hover{color:#e53935;background:#2a1a1a}
-.add-row{cursor:pointer;font-size:.75rem;color:#444;padding:5px 10px;display:flex;align-items:center;gap:5px;border:1px dashed #2a2a2a;background:#161616;transition:all .15s}
-.add-row:hover{color:#f0a500;border-color:#f0a500}
 
 /* EDIT SECTION MODAL */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center}
@@ -123,9 +121,10 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 
 <!-- ACTIONS -->
 <div class="actions">
-  <!-- เปลี่ยนจากบันทึกใส่ Sheet เป็นบันทึกเฉยๆ -->
   <button class="btn btn-save" id="btnSave" onclick="saveDay()">💾 บันทึกข้อมูล</button>
   <button class="btn btn-reset" onclick="resetDay()">🔄 ล้างวันนี้</button>
+  <!-- แยกปุ่มเพิ่มรายการ และ เพิ่มหมวด -->
+  <button class="btn" style="background:#1e3a5f;color:#90caf9;border:1px solid #1976d2" onclick="addCustomRowUI()">＋ เพิ่มรายการ</button>
   <button class="btn" style="background:#2d3a2d;color:#81c784;border:1px solid #4caf50" onclick="addSection()">＋ เพิ่มหมวด</button>
 </div>
 
@@ -140,11 +139,11 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
   <table id="mainTable">
     <thead>
       <tr>
-        <th style="text-align:left;width:36%">รายการ</th>
-        <th style="width:18%">จำนวน/หน่วย</th>
-        <th style="width:7%">ซื้อ</th>
-        <th style="width:20%">ราคา (฿)</th>
-        <th style="width:8%"></th>
+        <th style="text-align:left;width:35%">รายการ</th>
+        <th style="width:22%">ราคา (฿)</th>
+        <th style="width:20%">จำนวน</th>
+        <th style="width:13%">ซื้อ</th>
+        <th style="width:10%">ลบ</th>
       </tr>
     </thead>
     <tbody id="tableBody"></tbody>
@@ -167,6 +166,9 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 <div class="toast" id="toast"></div>
 
 <script>
+// URL สำหรับเชื่อมต่อกับ Google Sheet API
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVuP5GxiGCPLLcxy3VrCG2Nk4BzjSwl0oTnHpgyj_C4AxOq5JxbtAfGmXMFl83S5Qe/exec";
+
 // ──────────── DEFAULT DATA ────────────
 const DEFAULT_SECTIONS = [
   { id: "s1", label: "🥩 เนื้อสัตว์", color: "#4caf50", items: [
@@ -183,7 +185,7 @@ const DEFAULT_SECTIONS = [
   ]}
 ];
 
-// ──────────── LOCAL STORAGE FUNCTIONS (แทนที่การเรียก GAS) ────────────
+// ──────────── LOCAL STORAGE FUNCTIONS ────────────
 const Storage = {
   getSections: () => {
     const saved = localStorage.getItem("sections");
@@ -216,7 +218,7 @@ let sections = [];
 let rows = {};
 let savedDays = [];
 let currentDate = new Date().toISOString().split("T")[0];
-let activeRecognition = null;  // currently recording field
+let activeRecognition = null;
 let modalCallback = null;
 let speechSupported = ("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
 
@@ -252,7 +254,8 @@ function initRows(keepExisting) {
       if (!rows[k]) rows[k] = { name: item, sectionId: sec.id, isCustom: false, checked: false, unit: "", price: "" };
     });
   });
-  // 5 custom rows
+  
+  // สร้างแถวเปล่าๆ เริ่มต้นไว้ 5 แถว
   for (let i = 1; i <= 5; i++) {
     const k = "custom_" + i;
     if (!rows[k]) rows[k] = { name: "", sectionId: "custom", isCustom: true, checked: false, unit: "", price: "" };
@@ -273,8 +276,8 @@ function renderTable() {
         <span class="sec-label">${sec.label}</span>
         <span class="sec-actions">
           <button class="sec-btn" title="แก้ไขชื่อหมวด" onclick="editSection('${sec.id}')">✏️</button>
-          <button class="sec-btn" title="เพิ่มรายการ" onclick="addItemToSection('${sec.id}')">＋</button>
-          <button class="sec-btn del" title="ลบหมวดนี้" onclick="deleteSection('${sec.id}')">🗑️</button>
+          <button class="sec-btn" title="เพิ่มรายการในหมวดนี้" onclick="addItemToSection('${sec.id}')">＋</button>
+          <!-- เอาปุ่มถังขยะสำหรับลบหมวดหมู่ออก ป้องกันการลบผิดพลาด -->
         </span>
       </td>`;
     tbody.appendChild(htr);
@@ -289,8 +292,10 @@ function renderTable() {
       .reduce((a, r) => a + (parseFloat(r.price) || 0), 0);
     const ttr = document.createElement("tr");
     ttr.className = "total-row";
-    ttr.innerHTML = `<td colspan="3" style="text-align:right;padding-right:10px">รวม ${sec.label.replace(/[\u0E00-\u0E7FA-Za-z ]/g,"").trim()}</td>
-      <td style="text-align:center;color:#f0a500">฿${total.toLocaleString()}</td><td></td>`;
+    ttr.innerHTML = `
+      <td style="text-align:right;padding-right:10px">รวม ${sec.label.replace(/[\u0E00-\u0E7FA-Za-z ]/g,"").trim()}</td>
+      <td style="text-align:left;color:#f0a500;padding-left:10px">฿${total.toLocaleString()}</td>
+      <td colspan="3"></td>`;
     tbody.appendChild(ttr);
   });
 
@@ -308,8 +313,10 @@ function renderTable() {
   const grand = Object.values(rows).reduce((a, r) => a + (parseFloat(r.price) || 0), 0);
   const gtr = document.createElement("tr");
   gtr.className = "grand-row";
-  gtr.innerHTML = `<td colspan="3" style="text-align:right;padding-right:14px;color:#aaa">ยอดรวมวันนี้</td>
-    <td style="text-align:center;color:#f0a500">฿${grand.toLocaleString()}</td><td></td>`;
+  gtr.innerHTML = `
+    <td style="text-align:right;padding-right:14px;color:#aaa">ยอดรวมวันนี้</td>
+    <td style="text-align:left;color:#f0a500;padding-left:10px">฿${grand.toLocaleString()}</td>
+    <td colspan="3"></td>`;
   tbody.appendChild(gtr);
 }
 
@@ -318,16 +325,13 @@ function makeRow(k, r) {
   const tr = document.createElement("tr");
   tr.className = "data-row" + (r.checked ? " chk-row" : "");
   tr.id = "row_" + k;
+  // เรียงคอลัมน์: รายการ > ราคา > จำนวน > ซื้อ > ลบ(ปุ่ม✕)
   tr.innerHTML = `
     <td>
       <div class="item-cell${r.checked ? " done" : ""}" onclick="toggleRow('${k}')">
         <span class="chk-box${r.checked ? " on" : ""}" onclick="event.stopPropagation();toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
         ${r.name}
       </div>
-    </td>
-    <td><input class="cell-in" type="text" placeholder="-" value="${r.unit || ""}" onchange="updateRow('${k}','unit',this.value)"></td>
-    <td style="text-align:center">
-      <span class="chk-box${r.checked ? " on" : ""}" onclick="toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
     </td>
     <td>
       <div class="cell-in price-wrap">
@@ -336,7 +340,13 @@ function makeRow(k, r) {
         ${speechSupported ? `<button class="mic-btn" id="mic_${k}" title="พูดราคา" onclick="startVoice('${k}')">🎤</button>` : ""}
       </div>
     </td>
-    <td><button class="row-del" title="ลบรายการ" onclick="deleteRow('${k}')">✕</button></td>
+    <td><input class="cell-in" type="text" placeholder="-" value="${r.unit || ""}" onchange="updateRow('${k}','unit',this.value)"></td>
+    <td style="text-align:center">
+      <span class="chk-box${r.checked ? " on" : ""}" onclick="toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
+    </td>
+    <td style="text-align:center">
+      <button class="row-del" title="ลบรายการนี้" onclick="deleteRow('${k}')">✕</button>
+    </td>
   `;
   return tr;
 }
@@ -353,10 +363,6 @@ function makeCustomRow(k, r) {
           onchange="updateRow('${k}','name',this.value)">
       </div>
     </td>
-    <td><input class="cell-in" type="text" placeholder="-" value="${r.unit || ""}" onchange="updateRow('${k}','unit',this.value)"></td>
-    <td style="text-align:center">
-      <span class="chk-box${r.checked ? " on" : ""}" onclick="toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
-    </td>
     <td>
       <div class="cell-in price-wrap">
         <input class="cell-in price" type="number" min="0" placeholder="0" value="${r.price || ""}"
@@ -364,7 +370,13 @@ function makeCustomRow(k, r) {
         ${speechSupported ? `<button class="mic-btn" id="mic_${k}" title="พูดราคา" onclick="startVoice('${k}')">🎤</button>` : ""}
       </div>
     </td>
-    <td></td>
+    <td><input class="cell-in" type="text" placeholder="-" value="${r.unit || ""}" onchange="updateRow('${k}','unit',this.value)"></td>
+    <td style="text-align:center">
+      <span class="chk-box${r.checked ? " on" : ""}" onclick="toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
+    </td>
+    <td style="text-align:center">
+      <button class="row-del" title="ลบรายการนี้" onclick="deleteRow('${k}')">✕</button>
+    </td>
   `;
   return tr;
 }
@@ -389,23 +401,29 @@ function updateRow(k, field, val) {
   updateSectionTotal(rows[k].sectionId);
 }
 
-function deleteRow(k) {
-  if (!confirm("ลบรายการ \"" + rows[k].name + "\" ?")) return;
-  delete rows[k];
-  // Also remove from section items if preset
-  sections.forEach(sec => {
-    sec.items = sec.items.filter(item => sec.id + "_" + item !== k);
-  });
-  renderTable();
-  renderSummary();
-}
-
 function updateSectionTotal(sectionId) {
   if (!sectionId || sectionId === "custom") return;
   renderTable(); // simple full re-render
 }
 
-// ──────────── SECTION OPERATIONS ────────────
+function deleteRow(k) {
+  if (!confirm("ลบรายการนี้?")) return;
+  delete rows[k];
+  
+  // ลบออกจากในข้อมูลหมวดหมู่ (หากเป็นรายการที่อยู่ในหมวดหลัก) จะได้ไม่เด้งกลับมาใหม่ตอนรีเฟรช
+  let needsSave = false;
+  sections.forEach(sec => {
+    const oldLen = sec.items.length;
+    sec.items = sec.items.filter(item => sec.id + "_" + item !== k);
+    if (sec.items.length !== oldLen) needsSave = true;
+  });
+  if (needsSave) Storage.saveSections(sections);
+
+  renderTable();
+  renderSummary();
+}
+
+// ──────────── SECTION / CUSTOM ITEMS ────────────
 function editSection(secId) {
   const sec = sections.find(s => s.id === secId);
   if (!sec) return;
@@ -434,19 +452,6 @@ function addItemToSection(secId) {
   });
 }
 
-function deleteSection(secId) {
-  const sec = sections.find(s => s.id === secId);
-  if (!sec) return;
-  if (!confirm("ลบหมวด \"" + sec.label + "\" ทั้งหมด?")) return;
-  // Remove rows for this section
-  Object.keys(rows).forEach(k => { if (rows[k].sectionId === secId) delete rows[k]; });
-  sections = sections.filter(s => s.id !== secId);
-  Storage.saveSections(sections);
-  renderTable(); 
-  renderSummary(); 
-  showToast("🗑️ ลบหมวดแล้ว");
-}
-
 function addSection() {
   openModal("ชื่อหมวดใหม่", "", val => {
     if (!val.trim()) return;
@@ -458,6 +463,19 @@ function addSection() {
     showToast("✅ เพิ่มหมวด \"" + val + "\" แล้ว");
   });
 }
+
+// ฟังก์ชันสำหรับเพิ่มบรรทัดใหม่เมื่อกด "＋ เพิ่มรายการ"
+function addCustomRowUI() {
+  const k = "custom_" + Date.now();
+  rows[k] = { name: "", sectionId: "custom", isCustom: true, checked: false, unit: "", price: "" };
+  renderTable();
+  // เลื่อนหน้าจอลงไปที่ล่างสุดอัตโนมัติ
+  setTimeout(() => {
+    const grid = document.querySelector('.grid');
+    grid.scrollTop = grid.scrollHeight;
+  }, 50);
+}
+
 
 // ──────────── VOICE INPUT ────────────
 function startVoice(rowKey) {
@@ -483,7 +501,6 @@ function startVoice(rowKey) {
 
   rec.onresult = e => {
     const results = Array.from(e.results[0]).map(r => r.transcript.trim());
-    // Try to extract number from any alternative
     let num = null;
     for (const transcript of results) {
       const extracted = extractNumber(transcript);
@@ -516,33 +533,79 @@ function startVoice(rowKey) {
 }
 
 function extractNumber(text) {
-  // Convert Thai words to numbers if any, then extract digits
   const thaiNums = {"ศูนย์":0,"หนึ่ง":1,"สอง":2,"สาม":3,"สี่":4,"ห้า":5,"หก":6,"เจ็ด":7,"แปด":8,"เก้า":9,
     "สิบ":10,"ยี่สิบ":20,"สามสิบ":30,"สี่สิบ":40,"ห้าสิบ":50,"หกสิบ":60,"เจ็ดสิบ":70,"แปดสิบ":80,"เก้าสิบ":90,
     "ร้อย":100,"พัน":1000,"หมื่น":10000};
   let t = text.replace(/บาท|ราคา|฿/g,"").trim();
   const match = t.match(/[\d,]+/);
   if (match) return parseFloat(match[0].replace(/,/g,""));
-  // Thai word number (simple)
   for (const [word, val] of Object.entries(thaiNums)) {
     if (t === word) return val;
   }
   return null;
 }
 
-// ──────────── SAVE ────────────
-function saveDay() {
+// ──────────── SAVE (ผูกกับ Google Sheet) ────────────
+async function saveDay() {
   const grand = Object.values(rows).reduce((a, r) => a + (parseFloat(r.price) || 0), 0);
-  if (grand === 0) { showToast("⚠️ ยังไม่มีราคา"); return; }
-  setStatus("⏳ กำลังบันทึก...", "loading");
   
-  const count = Storage.saveDayData(currentDate, rows, grand);
-  savedDays = Storage.getSavedDays();
-  renderDays();
+  // เช็คว่ามีรายการที่ติ๊ก "ซื้อ" หรือใส่ "ราคา" อย่างน้อย 1 รายการหรือไม่
+  const hasData = Object.values(rows).some(r => r.checked || parseFloat(r.price) > 0);
+  if (!hasData) { showToast("⚠️ ยังไม่มีรายการที่เลือกหรือใส่ราคา"); return; }
   
-  showToast("✅ บันทึกแล้ว (" + count + " วัน)", "#2e7d32");
-  setStatus("✅ บันทึกข้อมูลลงในเครื่องแล้ว", "ok");
-  setTimeout(() => setStatus(""), 4000);
+  setStatus("⏳ กำลังบันทึกไปที่ Google Sheet...", "loading");
+  document.getElementById("btnSave").disabled = true;
+
+  // เตรียมข้อมูลส่งไปที่ Google Sheet
+  const payloadItems = [];
+  Object.values(rows).forEach(r => {
+     if ((r.checked || parseFloat(r.price) > 0) && r.name.trim() !== "") {
+         const sec = sections.find(s => s.id === r.sectionId);
+         const secName = sec ? sec.label : "รายการเพิ่มเติม";
+         payloadItems.push({
+             section: secName,
+             name: r.name,
+             price: parseFloat(r.price) || 0,
+             unit: r.unit || "",
+             checked: r.checked
+         });
+     }
+  });
+
+  const payload = {
+      date: currentDate,
+      grand: grand,
+      items: payloadItems
+  };
+
+  try {
+      // 1. บันทึกลงในเครื่อง (LocalStorage) เก็บประวัติไว้ดูย้อนหลัง
+      const count = Storage.saveDayData(currentDate, rows, grand);
+      savedDays = Storage.getSavedDays();
+      renderDays();
+
+      // 2. ส่งข้อมูลไปที่ Google Sheet API
+      const response = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      if (result.status === "success") {
+          showToast("✅ บันทึกลง Sheet สำเร็จ", "#2e7d32");
+          setStatus("✅ บันทึกข้อมูลลง Google Sheet และเครื่องแล้ว", "ok");
+      } else {
+          throw new Error(result.message);
+      }
+  } catch(e) {
+      console.error(e);
+      setStatus("❌ บันทึก Sheet ไม่สำเร็จ แต่เก็บลงเครื่องแล้ว", "err");
+      showToast("❌ Google Sheet Error", "#d32f2f");
+  }
+  
+  document.getElementById("btnSave").disabled = false;
+  setTimeout(() => setStatus(""), 5000);
 }
 
 function resetDay() {
@@ -582,7 +645,9 @@ function renderSummary() {
   document.getElementById("sumTotal").textContent = total;
   document.getElementById("sumChecked").textContent = checked;
   document.getElementById("sumGrand").textContent = "฿" + grand.toLocaleString();
-  document.getElementById("btnSave").disabled = grand === 0;
+  // ปุ่มจะยังกดไม่ได้ถ้ายังไม่มีอะไรติ๊กหรือไม่มีราคา
+  const hasData = Object.values(rows).some(r => r.checked || parseFloat(r.price) > 0);
+  document.getElementById("btnSave").disabled = !hasData;
 }
 
 // ──────────── MODAL ────────────
