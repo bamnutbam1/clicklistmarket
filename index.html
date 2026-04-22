@@ -294,6 +294,7 @@ let speechSupported = ("webkitSpeechRecognition" in window || "SpeechRecognition
 // สถานะการพูดรวดเดียว
 let batchRec = null;
 let batchTranscript = "";
+let batchLastIndex = 0; // จำตัวชี้วัดเพื่อไม่ให้ประมวลผลคำเดิมซ้ำ
 
 // ──────────── INIT ────────────
 document.getElementById("dateInput").value = currentDate;
@@ -728,6 +729,8 @@ function startBatchVoice() {
   if (!speechSupported) { showToast("❌ เบราว์เซอร์ไม่รองรับ Voice", "#d32f2f"); return; }
   
   batchTranscript = "";
+  batchLastIndex = 0; // รีเซ็ตตัวชี้วัดทุกครั้งที่เริ่มฟังใหม่
+  
   document.getElementById("voiceTranscript").textContent = "...กำลังรอเสียง...";
   document.getElementById("voiceStatusTitle").innerHTML = "🎤 กำลังฟัง (พูดรวดเดียว)...";
   document.getElementById("voiceModalBg").classList.add("show");
@@ -740,15 +743,35 @@ function startBatchVoice() {
   
   batchRec.onresult = (e) => {
       let interim = "";
-      let final = "";
+      
+      // ป้องกันบัก Android ที่เคลียร์ประวัติการพูดทิ้งเมื่อเว้นวรรคนาน
+      if (e.resultIndex === 0 && e.results.length < batchLastIndex) {
+          batchLastIndex = 0; 
+      }
+
       for (let i = e.resultIndex; i < e.results.length; i++) {
+          let transcript = e.results[i][0].transcript.trim();
+          
           if (e.results[i].isFinal) {
-              final += e.results[i][0].transcript;
+              if (i >= batchLastIndex) { // จะเพิ่มคำใหม่เฉพาะเมื่อเป็น Index ที่ยังไม่เคยเซฟลงตัวแปรหลัก
+                  batchTranscript += transcript + " ";
+                  batchLastIndex = i + 1;
+              }
           } else {
-              interim += e.results[i][0].transcript;
+              interim += transcript + " ";
           }
       }
-      if (final) batchTranscript += final + " ";
+      
+      // กรองคำที่ซ้ำกันติดๆ กัน (เช่น "เนื้อวัว เนื้อวัว" -> ให้เหลือ "เนื้อวัว")
+      let words = batchTranscript.trim().split(/\s+/);
+      let deduped = [];
+      for(let w of words) {
+          if(deduped.length === 0 || deduped[deduped.length-1] !== w) {
+              deduped.push(w);
+          }
+      }
+      batchTranscript = deduped.join(" ") + (deduped.length > 0 ? " " : "");
+      
       document.getElementById("voiceTranscript").textContent = batchTranscript + interim;
   };
   
@@ -757,7 +780,6 @@ function startBatchVoice() {
   };
   
   batchRec.onend = () => {
-      // ถ้าหยุดฟังเองแล้ว UI ยังค้างอยู่ แสดงว่ากดหยุดไม่ทัน หรือแอปตัดเสียง
       if(document.getElementById("voiceModalBg").classList.contains("show")) {
           document.getElementById("voiceStatusTitle").innerHTML = "⏸️ หยุดฟังแล้ว (กำลังประมวลผล...)";
       }
@@ -788,10 +810,9 @@ function stopBatchVoice() {
 
 // ตัดคำและจับคู่แบบ Fuzzy
 function processBatchTranscript(text) {
-  // ลบคำที่ไม่ต้องการออกเพื่อเตรียมจับคู่ด้วย Regex
   let cleaned = text.replace(/บาท|ราคา|ละ|กิโล/g, " ");
   
-  // ใช้ Regex แยก (ข้อความ) และ (ตัวเลข) ที่อยู่ติดกัน: หาอักขระที่ไม่ใช่ตัวเลข ไปจนเจอตัวเลขแรก
+  // ใช้ Regex แยก (ข้อความ) และ (ตัวเลข) ที่อยู่ติดกัน
   const regex = /([^\d]+)(\d+)/g;
   let match;
   const updates = [];
@@ -801,6 +822,11 @@ function processBatchTranscript(text) {
       let price = match[2];
       
       if (itemNameRaw && price) {
+          // ดักกรองคำซ้ำอีก 1 ชั้น เผื่อระบบอ่านมาเป็น "หมู หมู 100"
+          let words = itemNameRaw.split(/\s+/);
+          let uniqueWords = [...new Set(words)]; 
+          itemNameRaw = uniqueWords.join(" ");
+          
           let matchedKey = findBestMatch(itemNameRaw);
           if (matchedKey) {
               updates.push({ key: matchedKey, name: rows[matchedKey].name, price: price });
@@ -841,10 +867,9 @@ function findBestMatch(spokenText) {
       // 1. ตรงเป๊ะๆ
       if (itemClean === text) return k;
       
-      // 2. ตรงบางส่วน (คำพูดเรามีชื่อสินค้าแฝงอยู่ หรือ ชื่อสินค้าเรามีคำพูดแฝงอยู่)
+      // 2. ตรงบางส่วน
       if (itemClean.includes(text) || text.includes(itemClean)) {
           let score = Math.min(itemClean.length, text.length);
-          // ต้องตรงกันอย่างน้อย 2 ตัวอักษรขึ้นไป กันจับคู่มั่ว
           if (score > maxMatchCount && score >= 2) {
               maxMatchCount = score;
               bestKey = k;
