@@ -216,8 +216,9 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVuP5GxiGCPLLcxy3Vr
 const TABS = [
   { id: "tab1", name: "🛒 ตลาด 1" },
   { id: "tab2", name: "🛍️ ตลาด 2" },
-  { id: "tab3", name: "🏪 เซเว่น / อื่นๆ" },
+  { id: "tab3", name: "🏪 เซเว่น" },
   { id: "tab4", name: "🏢 แม็คโคร" },
+  { id: "tab5", name: "🗂️ อื่นๆ" },
   { id: "dashboard", name: "📊 แดชบอร์ด" }
 ];
 
@@ -230,28 +231,33 @@ const DEFAULT_SECTIONS = [
     "หมูสับ","หมูสามชั้น","หมูชิ้น","หมูตุ๋น","ตับหมู","อกไก่","เครื่องในไก่","เนื้อวัว","หมูยอ","กุ้ง","หมึก","ปลาดุก"
   ]},
   { id: "s2", tabId: "tab1", label: "🥬 ผัก", color: "#42a5f5", items: [
-    "กระเพรา","พริก","หน่อไม้ดอง","ดอกหอม","ต้นหอม","แตงกวา","ผักบุ้ง","คะน้า","ถั่วฝักยาว","มะกรูด","มะนาว","ผักกาดขาว","ตั้งโอ๋","หอมใหญ่","วุ้นเส้น","เต้าหู้ไข่","พริกหยวก","บวบ","พริกแห้ง","เครื่องผัดฉ่า","ผงกะหรี่"
+    "กระเพรา","พริก","หน่อไม้ดอง","ดอกหอม","ต้นหอม","แตงกวา","ผักบุ้ง","คะน้า","ถั่วฝักยาว","มะกรูด","มะนาว","ผักกาดขาว","ตั้งโอ๋","หอมใหญ่","พริกหยวก","บวบ","พริกแห้ง","เครื่องผัดฉ่า","ผงกะหรี่"
   ]},
   { id: "s3", tabId: "tab1", label: "🧂 เครื่องปรุง", color: "#ff7043", items: [
-    "กระเทียม","พริกไทย","เทียมเจียว","ไข่","ข้าวสาร","ชูรส","รสดี","สายชู","ซีอิ๊วดำ","แม๊กกี้","น้ำตาลทราย","ซอสผัด","ซอสสุกี้","ซอสพริก","พริกแกง","น้ำมัน","น้ำปลาพริก","ปลากะป๋อง"
+    "กระเทียม","พริกไทย","เทียมเจียว","ไข่","ข้าวสาร","น้ำมัน","น้ำปลาพริก","ปลากะป๋อง"
   ]},
   { id: "s4", tabId: "tab1", label: "📦 อื่นๆ", color: "#ab47bc", items: [
-    "แก็สถัง","แก็สปิคนิค","น้ำแข็ง","น้ำกิน","ถุง 4.5*7","ถุง 5*8","ถุง 6*9","ถุง 6*11","ถุง 8*16","ถุงซิบ","ถุงขยะ 24*28","กล่อง","ถ้วย","ช้อนส้อม","ถ่านหุงข้าว","แฟ๊บ","น้ำยาล้างจาน","จุลินทรีย์","ยากำจัดหนู"
-  ]},
-  
-  // --- แท็บ 2: ตลาด 2 ---
-  { id: "s5", tabId: "tab2", label: "🛍️ ของสดตลาด 2", color: "#e91e63", items: [
-    "ปลาทู", "ไก่ย่าง", "ขนมจีน"
+    "ถุง 4.5*7","ถุง 5*8","ถุง 6*9","ถุง 6*11","ถุง 8*16","ถุงซิบ","ถุงขยะ 24*28","กล่อง","ถ้วย","ช้อนส้อม","ถ่านหุงข้าว","แฟ๊บ","จุลินทรีย์","ยากำจัดหนู","ค่าที่จอดรถมอเตอร์ไซค์"
   ]},
 
-  // --- แท็บ 3: เซเว่น / อื่นๆ ---
-  { id: "s6", tabId: "tab3", label: "🏪 ของใช้ทั่วไป", color: "#009688", items: [
-    "น้ำดื่ม", "ทิชชู่", "ยาสีฟัน", "สบู่", "กาแฟ"
+  // --- แท็บ 2: ตลาด 2 ---
+  { id: "s5", tabId: "tab2", label: "🛍️ ของสดตลาด 2", color: "#e91e63", items: [
+    "ปลาทู","ไก่ย่าง","ขนมจีน","กุ้งหมึก","หมูยอ","วุ้นเส้น"
+  ]},
+
+  // --- แท็บ 3: เซเว่น ---
+  { id: "s6", tabId: "tab3", label: "🏪 เซเว่น / มินิมาร์ท", color: "#009688", items: [
+    "น้ำดื่ม","ทิชชู่","ยาสีฟัน","สบู่","กาแฟ","น้ำมัน","รสดี","ชูรส","ปลากะป๋อง","น้ำพริกเผา","น้ำตาลทราย","ผงซักฟอก","น้ำยาล้างจาน"
   ]},
 
   // --- แท็บ 4: แม็คโคร ---
   { id: "s7", tabId: "tab4", label: "🏢 ของแห้ง/ยกลัง แม็คโคร", color: "#e53935", items: [
-    "น้ำมันพืชยกลัง", "น้ำตาลทรายกระสอบ", "ข้าวสาร", "ซอสปรุงรสแกลลอน", "แพคเกจจิ้ง/กล่องข้าว"
+    "น้ำมันพืชยกลัง","น้ำตาลทรายกระสอบ","ซอสปรุงรสแกลลอน","แพคเกจจิ้ง/กล่องข้าว","ไข่ยกลัง","ข้าวสาร","พริกแกง","น้ำจิ้มสุกี้","ซอสพริก"
+  ]},
+
+  // --- แท็บ 5: อื่นๆ ---
+  { id: "s8", tabId: "tab5", label: "🗂️ ค่าใช้จ่ายอื่นๆ", color: "#ff9800", items: [
+    "น้ำแข็ง","แก็สถัง","แก็สปิคนิค","น้ำกิน","น้ำมันรถยนต์","น้ำมันรถมอเตอร์ไซค์","ค่าที่จอดรถมอเตอร์ไซค์","ค่าที่จอดรถยนต์","ค่าโดยสาร"
   ]}
 ];
 
@@ -262,6 +268,12 @@ const Storage = {
     if (saved) {
       let parsed = JSON.parse(saved);
       parsed = parsed.map(s => s.tabId ? s : { ...s, tabId: "tab1" });
+      // Migration: เพิ่ม section ใหม่จาก DEFAULT ที่ยังไม่มีใน localStorage
+      DEFAULT_SECTIONS.forEach(def => {
+        if (!parsed.find(s => s.id === def.id)) {
+          parsed.push(JSON.parse(JSON.stringify(def)));
+        }
+      });
       return parsed;
     }
     return JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
@@ -430,6 +442,31 @@ function renderDashboard() {
     </div>
   `;
 
+  // --- Tab summary for latest saved day ---
+  const latestDay = [...days].sort((a,b) => b.date.localeCompare(a.date))[0];
+  let tabSummaryHtml = "";
+  if (latestDay && latestDay.rows) {
+    const tabDefs = TABS.filter(t => t.id !== "dashboard");
+    tabSummaryHtml = `<div class="dash-card"><h3>🗂️ สรุปรายการล่าสุด (${latestDay.date}) แยกแท็บ</h3>`;
+    tabDefs.forEach(tab => {
+      const tabRows = Object.values(latestDay.rows).filter(r => r.tabId === tab.id && (r.checked || parseFloat(r.price) > 0));
+      if (tabRows.length === 0) return;
+      const tabTotal = tabRows.reduce((a,r) => a + (parseFloat(r.price)||0), 0);
+      tabSummaryHtml += `
+        <div style="margin-bottom:10px;">
+          <div style="font-size:.8rem;font-weight:700;color:#f0a500;padding:5px 0 4px;border-bottom:1px solid #2a2a2a;margin-bottom:4px;">${tab.name} — ฿${tabTotal.toLocaleString()}</div>`;
+      tabRows.forEach(r => {
+        tabSummaryHtml += `
+          <div class="dash-row" style="padding:4px 0;font-size:.82rem;">
+            <span style="color:${r.checked ? '#4caf50' : '#aaa'}">${r.checked ? '✓' : '○'} ${r.name}</span>
+            <span style="color:#f0a500;font-weight:700">${parseFloat(r.price) > 0 ? '฿'+parseFloat(r.price).toLocaleString() : '-'}</span>
+          </div>`;
+      });
+      tabSummaryHtml += `</div>`;
+    });
+    tabSummaryHtml += `</div>`;
+  }
+
   let html = `
     <div class="dash-card">
       <h3>📊 ภาพรวมทั้งหมด</h3>
@@ -443,6 +480,7 @@ function renderDashboard() {
       </div>
     </div>
     ${chartHtml}
+    ${tabSummaryHtml}
     <div class="dash-card">
       <h3>📅 ประวัติรายวัน (โหลดกลับมาแก้ได้)</h3>
   `;
