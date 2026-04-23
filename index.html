@@ -153,6 +153,8 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
   <button class="btn btn-batch" onclick="startBatchVoice()">🎤 พูดรวดเดียว</button>
   <button class="btn" style="background:#1e3a5f;color:#90caf9;border:1px solid #1976d2" onclick="addCustomRowUI()">＋ เพิ่มรายการ</button>
   <button class="btn" style="background:#2d3a2d;color:#81c784;border:1px solid #4caf50" onclick="addSection()">＋ เพิ่มหมวด</button>
+  <button class="btn" style="background:#1a3a2a;color:#80cbc4;border:1px solid #00897b" onclick="removeDuplicateRows()">🗑️ ลบซ้ำ</button>
+  <button class="btn" style="background:#2a2a1a;color:#fff176;border:1px solid #f9a825" onclick="openSheet()">📊 ดูชีท</button>
 </div>
 
 <!-- DAYS BAR (Hide in Dashboard) -->
@@ -211,9 +213,11 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 <script>
 // URL สำหรับเชื่อมต่อกับ Google Sheet API
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVuP5GxiGCPLLcxy3VrCG2Nk4BzjSwl0oTnHpgyj_C4AxOq5JxbtAfGmXMFl83S5Qe/exec";
+// ใส่ลิงก์ Google Sheet ที่นี่ (เปิดผ่านปุ่ม "ดูชีท")
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1_kUmWtRZ_8-9MhkcIQoK2p_ZNL_XRiByeN1pa1Vtc9k/edit";
 
 // ── VERSION: เพิ่มเลขนี้ทุกครั้งที่แก้ DEFAULT_SECTIONS ──
-const DATA_VERSION = "2";
+const DATA_VERSION = "4";
 
 // ──────────── TABS CONFIG ────────────
 const TABS = [
@@ -237,30 +241,30 @@ const DEFAULT_SECTIONS = [
     "กระเพรา","พริก","หน่อไม้ดอง","ดอกหอม","ต้นหอม","แตงกวา","ผักบุ้ง","คะน้า","ถั่วฝักยาว","มะกรูด","มะนาว","ผักกาดขาว","ตั้งโอ๋","หอมใหญ่","พริกหยวก","บวบ","พริกแห้ง","เครื่องผัดฉ่า","ผงกะหรี่"
   ]},
   { id: "s3", tabId: "tab1", label: "🧂 เครื่องปรุง", color: "#ff7043", items: [
-    "กระเทียม","พริกไทย","เทียมเจียว","ไข่","ข้าวสาร","น้ำมัน","น้ำปลาพริก","ปลากะป๋อง"
+    "กระเทียม","พริกไทย","เทียมเจียว","ไข่","น้ำมัน","น้ำปลาพริก","ปลากะป๋อง"
   ]},
   { id: "s4", tabId: "tab1", label: "📦 อื่นๆ", color: "#ab47bc", items: [
-    "ถุง 4.5*7","ถุง 5*8","ถุง 6*9","ถุง 6*11","ถุง 8*16","ถุงซิบ","ถุงขยะ 24*28","กล่อง","ถ้วย","ช้อนส้อม","ถ่านหุงข้าว","แฟ๊บ","จุลินทรีย์","ยากำจัดหนู","ค่าที่จอดรถมอเตอร์ไซค์"
+    "ถุง 4.5*7","ถุง 5*8","ถุง 6*9","ถุง 6*11","ถุง 8*16","ถุงซิบ","ถุงขยะ 24*28","กล่อง","ถ้วย","ช้อนส้อม","ค่าที่จอดรถมอเตอร์ไซค์"
   ]},
 
   // --- แท็บ 2: ตลาด 2 ---
   { id: "s5", tabId: "tab2", label: "🛍️ ของสดตลาด 2", color: "#e91e63", items: [
-    "ปลาทู","ไก่ย่าง","ขนมจีน","กุ้งหมึก","หมูยอ","วุ้นเส้น"
+    "กุ้งหมึก","หมูยอ","วุ้นเส้น"
   ]},
 
   // --- แท็บ 3: เซเว่น ---
   { id: "s6", tabId: "tab3", label: "🏪 เซเว่น / มินิมาร์ท", color: "#009688", items: [
-    "น้ำดื่ม","ทิชชู่","ยาสีฟัน","สบู่","กาแฟ","น้ำมัน","รสดี","ชูรส","ปลากะป๋อง","น้ำพริกเผา","น้ำตาลทราย","ผงซักฟอก","น้ำยาล้างจาน"
+    "น้ำดื่ม","กาแฟ","น้ำมัน","รสดี","ชูรส","ปลากะป๋อง","น้ำพริกเผา","น้ำตาลทราย","ผงซักฟอก","น้ำยาล้างจาน"
   ]},
 
   // --- แท็บ 4: แม็คโคร ---
   { id: "s7", tabId: "tab4", label: "🏢 ของแห้ง/ยกลัง แม็คโคร", color: "#e53935", items: [
-    "น้ำมันพืชยกลัง","น้ำตาลทรายกระสอบ","ซอสปรุงรสแกลลอน","แพคเกจจิ้ง/กล่องข้าว","ไข่ยกลัง","ข้าวสาร","พริกแกง","น้ำจิ้มสุกี้","ซอสพริก"
+    "ข้าวสาร","พริกแกง","น้ำจิ้มสุกี้","ซอสพริก"
   ]},
 
   // --- แท็บ 5: อื่นๆ ---
   { id: "s8", tabId: "tab5", label: "🗂️ ค่าใช้จ่ายอื่นๆ", color: "#ff9800", items: [
-    "น้ำแข็ง","แก็สถัง","แก็สปิคนิค","น้ำกิน","น้ำมันรถยนต์","น้ำมันรถมอเตอร์ไซค์","ค่าโดยสาร"
+    "น้ำแข็ง","น้ำแข็งกิน","แก็สถัง","แก็สปิคนิค","น้ำกิน","น้ำมันรถยนต์","น้ำมันรถมอเตอร์ไซค์"
   ]}
 ];
 
@@ -1086,6 +1090,38 @@ async function saveDay() {
   
   document.getElementById("btnSave").disabled = false;
   setTimeout(() => setStatus(""), 5000);
+}
+
+// ──────────── ลบรายการซ้ำ ────────────
+function removeDuplicateRows() {
+  // ลบเฉพาะแถวที่ ชื่อ + ราคา + หน่วย เหมือนกันทุกอย่าง
+  const seen = {};
+  const toDelete = [];
+
+  Object.entries(rows).forEach(([k, r]) => {
+    const key = (r.tabId || "tab1") + "|" + r.name.trim().toLowerCase() + "|" + (parseFloat(r.price) || 0) + "|" + (r.unit || "").trim().toLowerCase();
+    if (seen[key]) {
+      toDelete.push(k);
+    } else {
+      seen[key] = true;
+    }
+  });
+
+  toDelete.forEach(k => delete rows[k]);
+
+  if (toDelete.length > 0) {
+    Storage.saveRows(rows);
+    renderTable();
+    renderSummary();
+    showToast(`🗑️ ลบรายการซ้ำออก ${toDelete.length} รายการ`, "#e65100");
+  } else {
+    showToast("✅ ไม่พบรายการซ้ำ");
+  }
+}
+
+// ──────────── เปิด Google Sheet ────────────
+function openSheet() {
+  window.open(SHEET_URL, "_blank");
 }
 
 function resetDay() {
