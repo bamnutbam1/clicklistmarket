@@ -97,6 +97,12 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 .dash-val { font-weight: bold; color: #4caf50; font-size: 1.1rem;}
 .dash-day-btn { background:#242424; color:#f0a500; border:1px solid #444; border-radius:5px; padding:6px 12px; cursor:pointer; font-weight:700; font-family:inherit; font-size:0.85rem;}
 .dash-day-btn:hover { background:#333; border-color:#f0a500;}
+/* CHART */
+.chart-wrap { position:relative; width:100%; overflow-x:auto; }
+.chart-svg { display:block; min-width:300px; width:100%; }
+.chart-bar { transition: opacity .15s; cursor:default; }
+.chart-bar:hover { opacity:.8; }
+.chart-tooltip { position:absolute; background:#222; border:1px solid #f0a500; border-radius:6px; padding:5px 10px; font-size:.78rem; color:#f0a500; pointer-events:none; display:none; white-space:nowrap; z-index:10; }
 
 /* MODALS */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center}
@@ -221,13 +227,13 @@ let currentTab = "tab1";
 const DEFAULT_SECTIONS = [
   // --- แท็บ 1: ตลาด 1 ---
   { id: "s1", tabId: "tab1", label: "🥩 เนื้อสัตว์", color: "#4caf50", items: [
-    "หมูโบราณ","ไก่หนีบ","หมูสับ","หมูชิ้น 2 ชั้น","หมูตุ๋น","ตับหมู","อกไก่","เครื่องในไก่","เนื้อวัว","หมูยอ","กุ้ง","หมึก","ปลาดุก"
+    "หมูสับ","หมูสามชั้น","หมูชิ้น","หมูตุ๋น","ตับหมู","อกไก่","เครื่องในไก่","เนื้อวัว","หมูยอ","กุ้ง","หมึก","ปลาดุก"
   ]},
   { id: "s2", tabId: "tab1", label: "🥬 ผัก", color: "#42a5f5", items: [
     "กระเพรา","พริก","หน่อไม้ดอง","ดอกหอม","ต้นหอม","แตงกวา","ผักบุ้ง","คะน้า","ถั่วฝักยาว","มะกรูด","มะนาว","ผักกาดขาว","ตั้งโอ๋","หอมใหญ่","วุ้นเส้น","เต้าหู้ไข่","พริกหยวก","บวบ","พริกแห้ง","เครื่องผัดฉ่า","ผงกะหรี่"
   ]},
   { id: "s3", tabId: "tab1", label: "🧂 เครื่องปรุง", color: "#ff7043", items: [
-    "กระเทียม","พริกไทย","เทียมเจียว","ไข่","ข้าวสาร","ข้าวเหนียว","ชูรส","รสดี","สายชู","ซีอิ๊วดำ","แม๊กกี้","น้ำตาลทราย","ซอสผัด","ซอสสุกี้","ซอสพริก","พริกแกง","น้ำมัน","น้ำปลาพริก","ปลากะป๋อง"
+    "กระเทียม","พริกไทย","เทียมเจียว","ไข่","ข้าวสาร","ชูรส","รสดี","สายชู","ซีอิ๊วดำ","แม๊กกี้","น้ำตาลทราย","ซอสผัด","ซอสสุกี้","ซอสพริก","พริกแกง","น้ำมัน","น้ำปลาพริก","ปลากะป๋อง"
   ]},
   { id: "s4", tabId: "tab1", label: "📦 อื่นๆ", color: "#ab47bc", items: [
     "แก็สถัง","แก็สปิคนิค","น้ำแข็ง","น้ำกิน","ถุง 4.5*7","ถุง 5*8","ถุง 6*9","ถุง 6*11","ถุง 8*16","ถุงซิบ","ถุงขยะ 24*28","กล่อง","ถ้วย","ช้อนส้อม","ถ่านหุงข้าว","แฟ๊บ","น้ำยาล้างจาน","จุลินทรีย์","ยากำจัดหนู"
@@ -371,6 +377,59 @@ function renderDashboard() {
   let totalAll = 0;
   days.forEach(d => totalAll += (d.grand || 0));
 
+  // --- Build Chart HTML ---
+  const sortedForChart = [...days].sort((a,b) => a.date.localeCompare(b.date));
+  const maxVal = Math.max(...sortedForChart.map(d => d.grand || 0), 1);
+  const chartW = Math.max(sortedForChart.length * 56, 300);
+  const chartH = 160;
+  const padL = 52, padR = 10, padT = 18, padB = 40;
+  const barW = 36;
+  const innerW = chartW - padL - padR;
+  const innerH = chartH - padT - padB;
+  const step = innerW / Math.max(sortedForChart.length, 1);
+
+  // Y-axis guides (3 lines)
+  let guides = "";
+  for (let i = 1; i <= 3; i++) {
+    const yv = Math.round(maxVal * i / 3);
+    const y = padT + innerH - (innerH * i / 3);
+    guides += `<line x1="${padL}" y1="${y}" x2="${chartW - padR}" y2="${y}" stroke="#2a2a2a" stroke-width="1"/>`;
+    guides += `<text x="${padL - 4}" y="${y + 4}" fill="#555" font-size="9" text-anchor="end">฿${yv >= 1000 ? (yv/1000).toFixed(1)+'k' : yv}</text>`;
+  }
+
+  let bars = "";
+  sortedForChart.forEach((d, i) => {
+    const barH = Math.max(innerH * (d.grand || 0) / maxVal, 2);
+    const x = padL + i * step + (step - barW) / 2;
+    const y = padT + innerH - barH;
+    const label = d.date.slice(5); // MM-DD
+    const grand = (d.grand || 0).toLocaleString();
+    // color gradient: low=blue, mid=gold, high=green
+    const ratio = (d.grand || 0) / maxVal;
+    const color = ratio > 0.75 ? "#4caf50" : ratio > 0.4 ? "#f0a500" : "#42a5f5";
+    bars += `
+      <rect class="chart-bar" x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}" fill-opacity="0.85"
+        onmouseenter="showChartTip(event,'${d.date}','฿${grand}')" onmouseleave="hideChartTip()"/>
+      <text x="${x + barW/2}" y="${chartH - padB + 14}" fill="#888" font-size="9" text-anchor="middle">${label}</text>
+      <text x="${x + barW/2}" y="${y - 4}" fill="${color}" font-size="9" text-anchor="middle" font-weight="bold">${(d.grand||0) >= 1000 ? ((d.grand||0)/1000).toFixed(1)+'k' : (d.grand||0)}</text>
+    `;
+  });
+
+  const chartHtml = `
+    <div class="dash-card">
+      <h3>📈 กราฟเปรียบเทียบยอดซื้อรายวัน</h3>
+      <div class="chart-wrap" id="chartWrap">
+        <svg class="chart-svg" viewBox="0 0 ${chartW} ${chartH}" xmlns="http://www.w3.org/2000/svg" style="height:${chartH}px">
+          ${guides}
+          <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + innerH}" stroke="#444" stroke-width="1"/>
+          <line x1="${padL}" y1="${padT + innerH}" x2="${chartW - padR}" y2="${padT + innerH}" stroke="#444" stroke-width="1"/>
+          ${bars}
+        </svg>
+        <div class="chart-tooltip" id="chartTooltip"></div>
+      </div>
+    </div>
+  `;
+
   let html = `
     <div class="dash-card">
       <h3>📊 ภาพรวมทั้งหมด</h3>
@@ -383,7 +442,7 @@ function renderDashboard() {
         <span class="dash-val">฿${totalAll.toLocaleString()}</span>
       </div>
     </div>
-
+    ${chartHtml}
     <div class="dash-card">
       <h3>📅 ประวัติรายวัน (โหลดกลับมาแก้ได้)</h3>
   `;
@@ -414,6 +473,21 @@ function renderDashboard() {
 
   html += `</div>`;
   container.innerHTML = html;
+}
+
+function showChartTip(e, date, val) {
+  const tip = document.getElementById("chartTooltip");
+  if (!tip) return;
+  tip.textContent = date + "  " + val;
+  tip.style.display = "block";
+  const wrap = document.getElementById("chartWrap");
+  const rect = wrap.getBoundingClientRect();
+  tip.style.left = (e.clientX - rect.left + 8) + "px";
+  tip.style.top = (e.clientY - rect.top - 28) + "px";
+}
+function hideChartTip() {
+  const tip = document.getElementById("chartTooltip");
+  if (tip) tip.style.display = "none";
 }
 
 function loadDayData(dateStr) {
@@ -513,7 +587,8 @@ function makeRow(k, r) {
     <td>
       <div class="item-cell${r.checked ? " done" : ""}" onclick="toggleRow('${k}')">
         <span class="chk-box${r.checked ? " on" : ""}" onclick="event.stopPropagation();toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
-        ${r.name}
+        <span class="item-name" id="name_${k}" ondblclick="event.stopPropagation();inlineRename('${k}')">${r.name}</span>
+        <button class="sec-btn" style="margin-left:auto;font-size:.7rem;padding:1px 4px;opacity:0.35" title="แก้ชื่อ" onclick="event.stopPropagation();inlineRename('${k}')">✏️</button>
       </div>
     </td>
     <td>
@@ -532,6 +607,36 @@ function makeRow(k, r) {
     </td>
   `;
   return tr;
+}
+
+function inlineRename(k) {
+  const span = document.getElementById("name_" + k);
+  if (!span) return;
+  const oldName = rows[k].name;
+  const input = document.createElement("input");
+  input.value = oldName;
+  input.style.cssText = "background:#242424;border:1px solid #f0a500;color:#e8e8e8;font-family:inherit;font-size:.85rem;padding:2px 6px;border-radius:4px;width:100%;min-width:60px;";
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+
+  function commit() {
+    const newName = input.value.trim() || oldName;
+    sections.forEach(sec => {
+      const idx = sec.items.indexOf(oldName);
+      if (idx !== -1 && sec.id === rows[k].sectionId) sec.items[idx] = newName;
+    });
+    rows[k].name = newName;
+    Storage.saveSections(sections);
+    renderTable();
+    renderSummary();
+    if (newName !== oldName) showToast('✅ เปลี่ยนชื่อเป็น "' + newName + '" แล้ว');
+  }
+  input.addEventListener("blur", commit);
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") input.blur();
+    if (e.key === "Escape") { input.value = oldName; input.blur(); }
+  });
 }
 
 function makeCustomRow(k, r) {
@@ -741,38 +846,36 @@ function startBatchVoice() {
   batchRec.continuous = true;
   batchRec.interimResults = true;
   
+  // เก็บ index ที่ isFinal แล้ว เพื่อไม่ให้ประมวลผลซ้ำ
+  const finalizedIndexes = new Set();
+
   batchRec.onresult = (e) => {
       let interim = "";
-      
-      // ป้องกันบัก Android ที่เคลียร์ประวัติการพูดทิ้งเมื่อเว้นวรรคนาน
+
+      // ป้องกันบัก Android ที่ reset resultIndex
       if (e.resultIndex === 0 && e.results.length < batchLastIndex) {
-          batchLastIndex = 0; 
+          batchLastIndex = 0;
+          finalizedIndexes.clear();
       }
 
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      for (let i = 0; i < e.results.length; i++) {
           let transcript = e.results[i][0].transcript.trim();
-          
           if (e.results[i].isFinal) {
-              if (i >= batchLastIndex) { // จะเพิ่มคำใหม่เฉพาะเมื่อเป็น Index ที่ยังไม่เคยเซฟลงตัวแปรหลัก
+              // เพิ่มเฉพาะ index ที่ยังไม่เคยเพิ่มเลย
+              if (!finalizedIndexes.has(i)) {
+                  finalizedIndexes.add(i);
                   batchTranscript += transcript + " ";
                   batchLastIndex = i + 1;
               }
           } else {
-              interim += transcript + " ";
+              // แสดง interim เฉพาะ result ล่าสุด ไม่สะสม
+              if (i === e.results.length - 1) {
+                  interim = transcript;
+              }
           }
       }
-      
-      // กรองคำที่ซ้ำกันติดๆ กัน (เช่น "เนื้อวัว เนื้อวัว" -> ให้เหลือ "เนื้อวัว")
-      let words = batchTranscript.trim().split(/\s+/);
-      let deduped = [];
-      for(let w of words) {
-          if(deduped.length === 0 || deduped[deduped.length-1] !== w) {
-              deduped.push(w);
-          }
-      }
-      batchTranscript = deduped.join(" ") + (deduped.length > 0 ? " " : "");
-      
-      document.getElementById("voiceTranscript").textContent = batchTranscript + interim;
+
+      document.getElementById("voiceTranscript").textContent = batchTranscript + (interim ? " " + interim : "");
   };
   
   batchRec.onerror = (e) => {
