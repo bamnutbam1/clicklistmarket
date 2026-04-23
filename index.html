@@ -212,6 +212,9 @@ td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
 // URL สำหรับเชื่อมต่อกับ Google Sheet API
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVuP5GxiGCPLLcxy3VrCG2Nk4BzjSwl0oTnHpgyj_C4AxOq5JxbtAfGmXMFl83S5Qe/exec";
 
+// ── VERSION: เพิ่มเลขนี้ทุกครั้งที่แก้ DEFAULT_SECTIONS ──
+const DATA_VERSION = "2";
+
 // ──────────── TABS CONFIG ────────────
 const TABS = [
   { id: "tab1", name: "🛒 ตลาด 1" },
@@ -257,23 +260,24 @@ const DEFAULT_SECTIONS = [
 
   // --- แท็บ 5: อื่นๆ ---
   { id: "s8", tabId: "tab5", label: "🗂️ ค่าใช้จ่ายอื่นๆ", color: "#ff9800", items: [
-    "น้ำแข็ง","แก็สถัง","แก็สปิคนิค","น้ำกิน","น้ำมันรถยนต์","น้ำมันรถมอเตอร์ไซค์","ค่าที่จอดรถมอเตอร์ไซค์","ค่าที่จอดรถยนต์","ค่าโดยสาร"
+    "น้ำแข็ง","แก็สถัง","แก็สปิคนิค","น้ำกิน","น้ำมันรถยนต์","น้ำมันรถมอเตอร์ไซค์","ค่าโดยสาร"
   ]}
 ];
 
 // ──────────── LOCAL STORAGE FUNCTIONS ────────────
 const Storage = {
   getSections: () => {
+    const savedVer = localStorage.getItem("dataVersion");
+    // ถ้า version เก่ากว่า → ล้าง sections เก่าทิ้ง แล้วโหลด DEFAULT ใหม่
+    if (savedVer !== DATA_VERSION) {
+      localStorage.removeItem("sections");
+      localStorage.setItem("dataVersion", DATA_VERSION);
+      return JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    }
     const saved = localStorage.getItem("sections");
     if (saved) {
       let parsed = JSON.parse(saved);
       parsed = parsed.map(s => s.tabId ? s : { ...s, tabId: "tab1" });
-      // Migration: เพิ่ม section ใหม่จาก DEFAULT ที่ยังไม่มีใน localStorage
-      DEFAULT_SECTIONS.forEach(def => {
-        if (!parsed.find(s => s.id === def.id)) {
-          parsed.push(JSON.parse(JSON.stringify(def)));
-        }
-      });
       return parsed;
     }
     return JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
