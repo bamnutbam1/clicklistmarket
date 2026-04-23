@@ -217,7 +217,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVuP5GxiGCPLLcxy3Vr
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1_kUmWtRZ_8-9MhkcIQoK2p_ZNL_XRiByeN1pa1Vtc9k/edit";
 
 // ── VERSION: เพิ่มเลขนี้ทุกครั้งที่แก้ DEFAULT_SECTIONS ──
-const DATA_VERSION = "4";
+const DATA_VERSION = "6";
 
 // ──────────── TABS CONFIG ────────────
 const TABS = [
@@ -254,7 +254,7 @@ const DEFAULT_SECTIONS = [
 
   // --- แท็บ 3: เซเว่น ---
   { id: "s6", tabId: "tab3", label: "🏪 เซเว่น / มินิมาร์ท", color: "#009688", items: [
-    "น้ำดื่ม","กาแฟ","น้ำมัน","รสดี","ชูรส","ปลากะป๋อง","น้ำพริกเผา","น้ำตาลทราย","ผงซักฟอก","น้ำยาล้างจาน"
+    "น้ำดื่ม","กาแฟ","น้ำมัน","รสดี","ชูรส","ปลากะป๋อง","น้ำพริกเผา","น้ำตาลทราย","ผงซักฟอก","น้ำยาล้างจาน","น้ำแข็งถุง"
   ]},
 
   // --- แท็บ 4: แม็คโคร ---
@@ -264,7 +264,7 @@ const DEFAULT_SECTIONS = [
 
   // --- แท็บ 5: อื่นๆ ---
   { id: "s8", tabId: "tab5", label: "🗂️ ค่าใช้จ่ายอื่นๆ", color: "#ff9800", items: [
-    "น้ำแข็ง","น้ำแข็งกิน","แก็สถัง","แก็สปิคนิค","น้ำกิน","น้ำมันรถยนต์","น้ำมันรถมอเตอร์ไซค์"
+    "น้ำแข็ง","แก็สถัง","แก็สปิคนิค","น้ำกิน","น้ำมันรถยนต์","น้ำมันรถมอเตอร์ไซค์","ไข่ไก่"
   ]}
 ];
 
@@ -1042,8 +1042,15 @@ async function saveDay() {
   Object.values(rows).forEach(r => {
      if ((r.checked || parseFloat(r.price) > 0) && r.name.trim() !== "") {
          const sec = sections.find(s => s.id === r.sectionId);
-         const secName = sec ? sec.label : "รายการเพิ่มเติม";
-         
+         // ถ้าเป็นรายการเพิ่มเอง (ไม่มี sectionId หรือหา section ไม่เจอ) ให้ใช้ชื่อหมวดแรกของแท็บนั้นแทน
+         let secName = "รายการเพิ่มเติม";
+         if (sec) {
+           secName = sec.label;
+         } else {
+           const fallbackSec = sections.find(s => s.tabId === r.tabId);
+           if (fallbackSec) secName = fallbackSec.label;
+         }
+
          const tabDef = TABS.find(t => t.id === r.tabId);
          const tabName = tabDef ? tabDef.name.replace(/[^ก-ฮะ-์a-zA-Z0-9 ]/g, '').trim() : "ตลาด 1";
 
