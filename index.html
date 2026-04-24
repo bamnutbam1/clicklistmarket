@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ซื้อของตลาด</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f0a500">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ซื้อของตลาด">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+  }
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:#111;color:#e8e8e8;font-size:14px;overflow-x:hidden}
+
+/* TOPBAR */
+.topbar{background:#0d0d0d;border-bottom:2px solid #f0a500;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:200}
+.topbar h1{font-size:.95rem;font-weight:800;color:#f0a500;white-space:nowrap}
+.date-in{background:#222;border:1px solid #444;color:#e8e8e8;padding:5px 9px;border-radius:6px;font-family:inherit;font-size:.82rem}
+
+/* TABS */
+.tabs{display:flex;background:#0d0d0d;border-bottom:1px solid #333;overflow-x:auto}
+.tab-btn{flex:1;min-width:80px;padding:10px 5px;background:transparent;border:none;color:#888;font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;text-align:center}
+.tab-btn:hover{color:#ccc;background:#141414}
+.tab-btn.active{color:#f0a500;border-bottom-color:#f0a500;background:#1a1a1a}
+
+/* SUMMARY */
+.summary{display:flex;border-bottom:1px solid #333;background:#1c1c1c}
+.sum-item{flex:1;padding:7px 10px;border-right:1px solid #333;text-align:center}
+.sum-item:last-child{border-right:none}
+.sum-lbl{font-size:.6rem;color:#666;text-transform:uppercase;letter-spacing:.5px}
+.sum-val{font-size:.92rem;font-weight:700;color:#f0a500}
+.sum-val.g{color:#4caf50}
+
+/* ACTIONS */
+.actions{display:flex;gap:7px;padding:8px 12px;background:#181818;border-bottom:1px solid #333;flex-wrap:wrap;align-items:center}
+.btn{border:none;padding:6px 12px;border-radius:7px;font-family:inherit;font-weight:700;font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s}
+.btn-save{background:#4caf50;color:#fff}.btn-save:hover{background:#43a047}
+.btn-save:disabled{background:#2a3a2a;color:#555;cursor:not-allowed}
+.btn-reset{background:transparent;color:#e53935;border:1px solid #e53935}
+.btn-reset:hover{background:#e53935;color:#fff}
+.btn-batch{background:#5e35b1;color:#fff;border:1px solid #7e57c2}
+.btn-batch:hover{background:#512da8}
+
+/* DAYS BAR */
+.days-bar{background:#181818;border-bottom:1px solid #333;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.days-label{font-size:.72rem;color:#666;flex-shrink:0}
+.day-chip{background:#242424;border:1px solid #333;border-radius:20px;padding:3px 9px;font-size:.72rem;color:#aaa;display:flex;align-items:center;gap:5px;cursor:pointer}
+.day-chip:hover{border-color:#f0a500}
+.day-chip span.dt{color:#f0a500;font-weight:700}
+.day-del{cursor:pointer;color:#555;font-size:.78rem;margin-left:2px}
+.day-del:hover{color:#e53935}
+.days-empty{font-size:.72rem;color:#444;font-style:italic}
+
+/* STATUS */
+.status-bar{padding:5px 12px;font-size:.75rem;min-height:24px;background:#161616;border-bottom:1px solid #333}
+.status-bar.ok{color:#66bb6a}.status-bar.err{color:#ef5350}.status-bar.loading{color:#f0a500}.status-bar.info{color:#42a5f5}
+
+/* TABLE */
+.grid{overflow-x:auto;max-height:calc(100vh - 320px);overflow-y:auto;scroll-behavior:smooth}
+table{width:100%;border-collapse:collapse;min-width:500px}
+thead{position:sticky;top:0;z-index:10}
+thead th{background:#1f1f1f;padding:6px 8px;font-size:.68rem;color:#666;text-align:center;font-weight:600;border:1px solid #333;text-transform:uppercase}
+thead th:first-child{text-align:left}
+.sec-hdr td{padding:5px 10px;font-weight:700;font-size:.75rem;border:1px solid #333;background:#181818;position:relative}
+.sec-hdr .sec-actions{float:right;display:flex;gap:4px}
+.sec-btn{background:transparent;border:none;cursor:pointer;font-size:.75rem;padding:1px 5px;border-radius:4px;color:#666;transition:all .15s}
+.sec-btn:hover{background:#333;color:#fff}
+.sec-btn.del:hover{color:#e53935}
+.data-row{transition:background .12s}
+.data-row:hover{background:#1e1e1e}
+.data-row.chk-row{background:rgba(76,175,80,.07)}
+td{border:1px solid #2a2a2a;padding:0;vertical-align:middle}
+.item-cell{padding:2px 8px;font-size:.85rem;display:flex;align-items:center;gap:6px;min-height:32px;cursor:pointer;user-select:none}
+.item-cell.done{color:#555;text-decoration:line-through}
+.chk-box{width:14px;height:14px;border:1.5px solid #555;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px}
+.chk-box.on{background:#4caf50;border-color:#4caf50;color:#fff}
+.cell-in{width:100%;background:transparent;border:none;color:#e8e8e8;font-family:inherit;font-size:.82rem;padding:5px 7px;text-align:center}
+.cell-in:focus{outline:none;background:#1e1e1e}
+.cell-in.price{color:#f0a500}
+.cell-in.price-wrap{display:flex;align-items:center;background:transparent;padding:0 5px}
+.cell-in.price-wrap input{flex:1;text-align:left}
+.mic-btn{background:transparent;border:none;cursor:pointer;padding:3px 5px;border-radius:4px;font-size:.85rem;color:#555;transition:all .15s;flex-shrink:0}
+.mic-btn:hover{color:#f0a500;background:#222}
+.mic-btn.active{color:#e53935;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.custom-in{flex:1;background:transparent;border:none;color:#e8e8e8;font-family:inherit;font-size:.85rem;padding:3px 4px}
+.custom-in:focus{outline:none}
+.custom-in::placeholder{color:#383838;font-style:italic}
+.total-row td{background:#1a1a1a;font-weight:700;font-size:.75rem;color:#666;padding:4px 10px;border-top:1px solid #333}
+.grand-row td{background:#0d0d0d;border-top:2px solid #f0a500;padding:8px 12px;font-size:.95rem;font-weight:800}
+.row-del{background:transparent;border:none;cursor:pointer;color:#3a3a3a;font-size:.8rem;padding:2px 6px;border-radius:3px;transition:all .15s}
+.row-del:hover{color:#e53935;background:#2a1a1a}
+
+/* DASHBOARD */
+.dashboard-container { padding: 15px; color: #e8e8e8; max-height:calc(100vh - 160px); overflow-y:auto; display:none; }
+.dash-card { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+.dash-card h3 { color: #f0a500; font-size: 1rem; margin-bottom: 12px; display:flex; align-items:center; gap:6px; border-bottom: 1px solid #333; padding-bottom: 8px;}
+.dash-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #2a2a2a; font-size: 0.9rem; align-items:center;}
+.dash-row:last-child { border-bottom: none; }
+.dash-val { font-weight: bold; color: #4caf50; font-size: 1.1rem;}
+.dash-day-btn { background:#242424; color:#f0a500; border:1px solid #444; border-radius:5px; padding:6px 12px; cursor:pointer; font-weight:700; font-family:inherit; font-size:0.85rem;}
+.dash-day-btn:hover { background:#333; border-color:#f0a500;}
+/* CHART */
+.chart-wrap { position:relative; width:100%; overflow-x:auto; }
+.chart-svg { display:block; min-width:300px; width:100%; }
+.chart-bar { transition: opacity .15s; cursor:default; }
+.chart-bar:hover { opacity:.8; }
+.chart-tooltip { position:absolute; background:#222; border:1px solid #f0a500; border-radius:6px; padding:5px 10px; font-size:.78rem; color:#f0a500; pointer-events:none; display:none; white-space:nowrap; z-index:10; }
+
+/* MODALS */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:#1a1a1a;border:1px solid #444;border-radius:12px;padding:20px;width:340px;max-width:95vw}
+.modal h3{font-size:.9rem;font-weight:700;color:#f0a500;margin-bottom:12px}
+.modal input{width:100%;background:#242424;border:1px solid #444;color:#e8e8e8;padding:8px 10px;border-radius:7px;font-family:inherit;font-size:.88rem;margin-bottom:10px}
+.modal input:focus{outline:none;border-color:#f0a500}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.modal-btn{border:none;padding:7px 14px;border-radius:7px;font-family:inherit;font-weight:700;font-size:.8rem;cursor:pointer}
+.modal-btn.ok{background:#f0a500;color:#111}
+.modal-btn.cancel{background:#333;color:#aaa}
+
+/* TOAST */
+.toast{position:fixed;bottom:16px;right:16px;background:#333;color:#fff;padding:9px 14px;border-radius:8px;font-weight:700;font-size:.82rem;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.5);display:none;align-items:center;gap:7px}
+.toast.show{display:flex}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid #666;border-top-color:#f0a500;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <h1>📋 Checklist ซื้อของ</h1>
+  <input class="date-in" type="date" id="dateInput">
+</div>
+
+<!-- TABS -->
+<div class="tabs" id="tabsContainer">
+  <!-- เรนเดอร์แท็บที่นี่ -->
+</div>
+
+<!-- STATUS BAR -->
+<div class="status-bar" id="statusBar"></div>
+
+<!-- SUMMARY (Hide in Dashboard) -->
+<div class="summary" id="summaryBar">
+  <div class="sum-item" title="รวมทุกแท็บ"><div class="sum-lbl">รายการรวม</div><div class="sum-val" id="sumTotal">0</div></div>
+  <div class="sum-item" title="รวมทุกแท็บ"><div class="sum-lbl">ซื้อแล้ว</div><div class="sum-val g" id="sumChecked">0</div></div>
+  <div class="sum-item" title="รวมทุกแท็บ"><div class="sum-lbl">ยอดรวมทั้งหมด</div><div class="sum-val" id="sumGrand">฿0</div></div>
+</div>
+
+<!-- ACTIONS (Hide in Dashboard) -->
+<div class="actions" id="actionsBar">
+  <button class="btn btn-save" id="btnSave" onclick="saveDay()">💾 บันทึกข้อมูล</button>
+  <button class="btn btn-reset" onclick="resetDay()">🔄 ล้างวันนี้</button>
+  <button class="btn btn-batch" onclick="startBatchVoice()">🎤 พูดรวดเดียว</button>
+  <button class="btn" style="background:#1e3a5f;color:#90caf9;border:1px solid #1976d2" onclick="addCustomRowUI()">＋ เพิ่มรายการ</button>
+  <button class="btn" style="background:#2d3a2d;color:#81c784;border:1px solid #4caf50" onclick="addSection()">＋ เพิ่มหมวด</button>
+  <button class="btn" style="background:#1a3a2a;color:#80cbc4;border:1px solid #00897b" onclick="removeDuplicateRows()">🗑️ ลบซ้ำ</button>
+  <button class="btn" style="background:#2a2a1a;color:#fff176;border:1px solid #f9a825" onclick="openSheet()">📊 ดูชีท</button>
+</div>
+
+<!-- DAYS BAR (Hide in Dashboard) -->
+<div class="days-bar" id="daysBar">
+  <span class="days-label">📅 บันทึกแล้ว:</span>
+  <div id="daysChips"><span class="days-empty">ยังไม่มี</span></div>
+</div>
+
+<!-- DASHBOARD CONTAINER -->
+<div class="dashboard-container" id="dashboardContainer">
+  <!-- เรนเดอร์แดชบอร์ดที่นี่ -->
+</div>
+
+<!-- TABLE -->
+<div class="grid" id="mainGrid">
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th style="text-align:left;width:35%">รายการ</th>
+        <th style="width:22%">ราคา (฿)</th>
+        <th style="width:20%">จำนวน</th>
+        <th style="width:13%">ซื้อ</th>
+        <th style="width:10%">ลบ</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<!-- BATCH VOICE MODAL -->
+<div class="modal-bg" id="voiceModalBg">
+  <div class="modal" style="text-align:center">
+    <h3 id="voiceStatusTitle" style="font-size:1.1rem; margin-bottom:5px;">🎤 กำลังฟัง...</h3>
+    <p style="color:#aaa; font-size:0.8rem; margin-bottom:15px;">พูดชื่อรายการตามด้วยราคาติดกันได้เลย<br>เช่น <span style="color:#4caf50">"หมูสับ 100 เนื้อวัว 200 น้ำปลา 50"</span></p>
+    <div id="voiceTranscript" style="min-height:60px; max-height:120px; overflow-y:auto; background:#111; border:1px solid #333; border-radius:8px; padding:10px; margin-bottom:15px; color:#f0a500; font-style:italic; font-size:0.9rem; text-align:left;">...</div>
+    <button class="btn btn-save" style="width:100%; justify-content:center; padding:10px; font-size:1rem;" onclick="stopBatchVoice()">✅ หยุดและประมวลผล</button>
+    <button class="btn" style="width:100%; justify-content:center; padding:8px; margin-top:8px; background:transparent; border:1px solid #555; color:#aaa;" onclick="cancelBatchVoice()">✕ ยกเลิก</button>
+  </div>
+</div>
+
+<!-- EDIT SECTION MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3 id="modalTitle">แก้ไขหัวข้อ</h3>
+    <input type="text" id="modalInput" placeholder="ชื่อหมวด เช่น 🍎 ผลไม้">
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="modal-btn ok" onclick="confirmModal()">ตกลง</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// URL สำหรับเชื่อมต่อกับ Google Sheet API
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVuP5GxiGCPLLcxy3VrCG2Nk4BzjSwl0oTnHpgyj_C4AxOq5JxbtAfGmXMFl83S5Qe/exec";
+// ใส่ลิงก์ Google Sheet ที่นี่ (เปิดผ่านปุ่ม "ดูชีท")
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1_kUmWtRZ_8-9MhkcIQoK2p_ZNL_XRiByeN1pa1Vtc9k/edit";
+
+// ── VERSION: เพิ่มเลขนี้ทุกครั้งที่แก้ DEFAULT_SECTIONS ──
+const DATA_VERSION = "6";
+
+// ──────────── TABS CONFIG ────────────
+const TABS = [
+  { id: "tab1", name: "🛒 ตลาด 1" },
+  { id: "tab2", name: "🛍️ ตลาด 2" },
+  { id: "tab3", name: "🏪 เซเว่น" },
+  { id: "tab4", name: "🏢 แม็คโคร" },
+  { id: "tab5", name: "🗂️ อื่นๆ" },
+  { id: "dashboard", name: "📊 แดชบอร์ด" }
+];
+
+let currentTab = "tab1";
+
+// ──────────── DEFAULT DATA ────────────
+const DEFAULT_SECTIONS = [
+  // --- แท็บ 1: ตลาด 1 ---
+  { id: "s1", tabId: "tab1", label: "🥩 เนื้อสัตว์", color: "#4caf50", items: [
+    "หมูสับ","หมูสามชั้น","หมูชิ้น","หมูตุ๋น","ตับหมู","อกไก่","เครื่องในไก่","เนื้อวัว","หมูยอ","กุ้ง","หมึก","ปลาดุก"
+  ]},
+  { id: "s2", tabId: "tab1", label: "🥬 ผัก", color: "#42a5f5", items: [
+    "กระเพรา","พริก","หน่อไม้ดอง","ดอกหอม","ต้นหอม","แตงกวา","ผักบุ้ง","คะน้า","ถั่วฝักยาว","มะกรูด","มะนาว","ผักกาดขาว","ตั้งโอ๋","หอมใหญ่","พริกหยวก","บวบ","พริกแห้ง","เครื่องผัดฉ่า","ผงกะหรี่"
+  ]},
+  { id: "s3", tabId: "tab1", label: "🧂 เครื่องปรุง", color: "#ff7043", items: [
+    "กระเทียม","พริกไทย","เทียมเจียว","ไข่","น้ำมัน","น้ำปลาพริก","ปลากะป๋อง"
+  ]},
+  { id: "s4", tabId: "tab1", label: "📦 อื่นๆ", color: "#ab47bc", items: [
+    "ถุง 4.5*7","ถุง 5*8","ถุง 6*9","ถุง 6*11","ถุง 8*16","ถุงซิบ","ถุงขยะ 24*28","กล่อง","ถ้วย","ช้อนส้อม","ค่าที่จอดรถมอเตอร์ไซค์"
+  ]},
+
+  // --- แท็บ 2: ตลาด 2 ---
+  { id: "s5", tabId: "tab2", label: "🛍️ ของสดตลาด 2", color: "#e91e63", items: [
+    "กุ้งหมึก","หมูยอ","วุ้นเส้น"
+  ]},
+
+  // --- แท็บ 3: เซเว่น ---
+  { id: "s6", tabId: "tab3", label: "🏪 เซเว่น / มินิมาร์ท", color: "#009688", items: [
+    "น้ำดื่ม","กาแฟ","น้ำมัน","รสดี","ชูรส","ปลากะป๋อง","น้ำพริกเผา","น้ำตาลทราย","ผงซักฟอก","น้ำยาล้างจาน","น้ำแข็งถุง"
+  ]},
+
+  // --- แท็บ 4: แม็คโคร ---
+  { id: "s7", tabId: "tab4", label: "🏢 ของแห้ง/ยกลัง แม็คโคร", color: "#e53935", items: [
+    "ข้าวสาร","พริกแกง","น้ำจิ้มสุกี้","ซอสพริก"
+  ]},
+
+  // --- แท็บ 5: อื่นๆ ---
+  { id: "s8", tabId: "tab5", label: "🗂️ ค่าใช้จ่ายอื่นๆ", color: "#ff9800", items: [
+    "น้ำแข็ง","แก็สถัง","แก็สปิคนิค","น้ำกิน","น้ำมันรถยนต์","น้ำมันรถมอเตอร์ไซค์","ไข่ไก่"
+  ]}
+];
+
+// ──────────── LOCAL STORAGE FUNCTIONS ────────────
+const Storage = {
+  getSections: () => {
+    const savedVer = localStorage.getItem("dataVersion");
+    // ถ้า version เก่ากว่า → ล้าง sections เก่าทิ้ง แล้วโหลด DEFAULT ใหม่
+    if (savedVer !== DATA_VERSION) {
+      localStorage.removeItem("sections");
+      localStorage.setItem("dataVersion", DATA_VERSION);
+      return JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+    }
+    const saved = localStorage.getItem("sections");
+    if (saved) {
+      let parsed = JSON.parse(saved);
+      parsed = parsed.map(s => s.tabId ? s : { ...s, tabId: "tab1" });
+      return parsed;
+    }
+    return JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+  },
+  saveSections: (data) => {
+    localStorage.setItem("sections", JSON.stringify(data));
+  },
+  getSavedDays: () => {
+    const saved = localStorage.getItem("savedDays");
+    return saved ? JSON.parse(saved) : [];
+  },
+  saveDayData: (dateStr, rowsObj, grand) => {
+    let days = Storage.getSavedDays();
+    days = days.filter(d => d.date !== dateStr); // ทับของเก่าวันที่เดิมในเครื่อง
+    days.push({ date: dateStr, rows: rowsObj, grand: grand });
+    days.sort((a, b) => a.date.localeCompare(b.date));
+    localStorage.setItem("savedDays", JSON.stringify(days));
+    return days.length;
+  },
+  deleteDay: (dateStr) => {
+    let days = Storage.getSavedDays();
+    days = days.filter(d => d.date !== dateStr);
+    localStorage.setItem("savedDays", JSON.stringify(days));
+  }
+};
+
+// ──────────── STATE ────────────
+let sections = [];
+let rows = {};
+let savedDays = [];
+let currentDate = new Date().toISOString().split("T")[0];
+let activeRecognition = null;
+let modalCallback = null;
+let speechSupported = ("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
+
+// สถานะการพูดรวดเดียว
+let batchRec = null;
+let batchTranscript = "";
+let batchLastIndex = 0; // จำตัวชี้วัดเพื่อไม่ให้ประมวลผลคำเดิมซ้ำ
+
+// ──────────── INIT ────────────
+document.getElementById("dateInput").value = currentDate;
+document.getElementById("dateInput").addEventListener("change", e => {
+  currentDate = e.target.value;
+  renderSummary();
+});
+
+function init() {
+  setStatus("⏳ กำลังโหลด...", "loading");
+  try {
+    sections = Storage.getSections();
+    savedDays = Storage.getSavedDays();
+    initRows();
+    renderTabs();
+    switchTab(currentTab); // ควบคุมการแสดงผลตามแท็บที่โหลด
+    renderDays();
+    renderSummary();
+    setStatus("✅ โหลดข้อมูลแล้ว", "ok");
+    setTimeout(() => setStatus(""), 2000);
+  } catch(e) {
+    setStatus("❌ โหลดไม่สำเร็จ: " + e.message, "err");
+  }
+}
+
+function renderTabs() {
+  const container = document.getElementById("tabsContainer");
+  container.innerHTML = TABS.map(tab => `
+    <button class="tab-btn ${currentTab === tab.id ? 'active' : ''}" 
+            onclick="switchTab('${tab.id}')">
+      ${tab.name}
+    </button>
+  `).join("");
+}
+
+function switchTab(tabId) {
+  currentTab = tabId;
+  renderTabs();
+  
+  const grid = document.getElementById('mainGrid');
+  const actions = document.getElementById('actionsBar');
+  const summary = document.getElementById('summaryBar');
+  const daysBar = document.getElementById('daysBar');
+  const dashboard = document.getElementById('dashboardContainer');
+
+  if (tabId === 'dashboard') {
+    grid.style.display = 'none';
+    actions.style.display = 'none';
+    summary.style.display = 'none';
+    daysBar.style.display = 'none';
+    dashboard.style.display = 'block';
+    renderDashboard();
+  } else {
+    grid.style.display = 'block';
+    actions.style.display = 'flex';
+    summary.style.display = 'flex';
+    daysBar.style.display = 'flex';
+    dashboard.style.display = 'none';
+    renderTable();
+    renderSummary();
+  }
+}
+
+// ──────────── DASHBOARD ────────────
+function renderDashboard() {
+  const days = Storage.getSavedDays();
+  const container = document.getElementById("dashboardContainer");
+  
+  if (days.length === 0) {
+    container.innerHTML = `<div class="dash-card"><p style="text-align:center;color:#888;padding:20px 0;">ยังไม่มีประวัติการบันทึกข้อมูล</p></div>`;
+    return;
+  }
+
+  let totalAll = 0;
+  days.forEach(d => totalAll += (d.grand || 0));
+
+  // --- Build Chart HTML ---
+  const sortedForChart = [...days].sort((a,b) => a.date.localeCompare(b.date));
+  const maxVal = Math.max(...sortedForChart.map(d => d.grand || 0), 1);
+  const chartW = Math.max(sortedForChart.length * 56, 300);
+  const chartH = 160;
+  const padL = 52, padR = 10, padT = 18, padB = 40;
+  const barW = 36;
+  const innerW = chartW - padL - padR;
+  const innerH = chartH - padT - padB;
+  const step = innerW / Math.max(sortedForChart.length, 1);
+
+  // Y-axis guides (3 lines)
+  let guides = "";
+  for (let i = 1; i <= 3; i++) {
+    const yv = Math.round(maxVal * i / 3);
+    const y = padT + innerH - (innerH * i / 3);
+    guides += `<line x1="${padL}" y1="${y}" x2="${chartW - padR}" y2="${y}" stroke="#2a2a2a" stroke-width="1"/>`;
+    guides += `<text x="${padL - 4}" y="${y + 4}" fill="#555" font-size="9" text-anchor="end">฿${yv >= 1000 ? (yv/1000).toFixed(1)+'k' : yv}</text>`;
+  }
+
+  let bars = "";
+  sortedForChart.forEach((d, i) => {
+    const barH = Math.max(innerH * (d.grand || 0) / maxVal, 2);
+    const x = padL + i * step + (step - barW) / 2;
+    const y = padT + innerH - barH;
+    const label = d.date.slice(5); // MM-DD
+    const grand = (d.grand || 0).toLocaleString();
+    // color gradient: low=blue, mid=gold, high=green
+    const ratio = (d.grand || 0) / maxVal;
+    const color = ratio > 0.75 ? "#4caf50" : ratio > 0.4 ? "#f0a500" : "#42a5f5";
+    bars += `
+      <rect class="chart-bar" x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}" fill-opacity="0.85"
+        onmouseenter="showChartTip(event,'${d.date}','฿${grand}')" onmouseleave="hideChartTip()"/>
+      <text x="${x + barW/2}" y="${chartH - padB + 14}" fill="#888" font-size="9" text-anchor="middle">${label}</text>
+      <text x="${x + barW/2}" y="${y - 4}" fill="${color}" font-size="9" text-anchor="middle" font-weight="bold">${(d.grand||0) >= 1000 ? ((d.grand||0)/1000).toFixed(1)+'k' : (d.grand||0)}</text>
+    `;
+  });
+
+  const chartHtml = `
+    <div class="dash-card">
+      <h3>📈 กราฟเปรียบเทียบยอดซื้อรายวัน</h3>
+      <div class="chart-wrap" id="chartWrap">
+        <svg class="chart-svg" viewBox="0 0 ${chartW} ${chartH}" xmlns="http://www.w3.org/2000/svg" style="height:${chartH}px">
+          ${guides}
+          <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + innerH}" stroke="#444" stroke-width="1"/>
+          <line x1="${padL}" y1="${padT + innerH}" x2="${chartW - padR}" y2="${padT + innerH}" stroke="#444" stroke-width="1"/>
+          ${bars}
+        </svg>
+        <div class="chart-tooltip" id="chartTooltip"></div>
+      </div>
+    </div>
+  `;
+
+  // --- Tab summary for latest saved day ---
+  const latestDay = [...days].sort((a,b) => b.date.localeCompare(a.date))[0];
+  let tabSummaryHtml = "";
+  if (latestDay && latestDay.rows) {
+    const tabDefs = TABS.filter(t => t.id !== "dashboard");
+    tabSummaryHtml = `<div class="dash-card"><h3>🗂️ สรุปรายการล่าสุด (${latestDay.date}) แยกแท็บ</h3>`;
+    tabDefs.forEach(tab => {
+      const tabRows = Object.values(latestDay.rows).filter(r => r.tabId === tab.id && (r.checked || parseFloat(r.price) > 0));
+      if (tabRows.length === 0) return;
+      const tabTotal = tabRows.reduce((a,r) => a + (parseFloat(r.price)||0), 0);
+      tabSummaryHtml += `
+        <div style="margin-bottom:10px;">
+          <div style="font-size:.8rem;font-weight:700;color:#f0a500;padding:5px 0 4px;border-bottom:1px solid #2a2a2a;margin-bottom:4px;">${tab.name} — ฿${tabTotal.toLocaleString()}</div>`;
+      tabRows.forEach(r => {
+        tabSummaryHtml += `
+          <div class="dash-row" style="padding:4px 0;font-size:.82rem;">
+            <span style="color:${r.checked ? '#4caf50' : '#aaa'}">${r.checked ? '✓' : '○'} ${r.name}</span>
+            <span style="color:#f0a500;font-weight:700">${parseFloat(r.price) > 0 ? '฿'+parseFloat(r.price).toLocaleString() : '-'}</span>
+          </div>`;
+      });
+      tabSummaryHtml += `</div>`;
+    });
+    tabSummaryHtml += `</div>`;
+  }
+
+  let html = `
+    <div class="dash-card">
+      <h3>📊 ภาพรวมทั้งหมด</h3>
+      <div class="dash-row">
+        <span>จำนวนวันที่บันทึก:</span>
+        <span style="color:#42a5f5; font-weight:bold;">${days.length} วัน</span>
+      </div>
+      <div class="dash-row" style="border-bottom:none;">
+        <span>ยอดใช้จ่ายสะสม:</span>
+        <span class="dash-val">฿${totalAll.toLocaleString()}</span>
+      </div>
+    </div>
+    ${chartHtml}
+    ${tabSummaryHtml}
+    <div class="dash-card">
+      <h3>📅 ประวัติรายวัน (โหลดกลับมาแก้ได้)</h3>
+  `;
+
+  const sortedDays = [...days].sort((a,b) => b.date.localeCompare(a.date));
+  
+  sortedDays.forEach(d => {
+    let itemCount = 0;
+    if(d.rows) {
+      Object.values(d.rows).forEach(r => {
+        if(r.checked || parseFloat(r.price)>0) itemCount++;
+      });
+    }
+
+    html += `
+      <div class="dash-row">
+        <div>
+          <span style="color:#f0a500; font-weight:bold;">${d.date}</span>
+          <div style="font-size:0.75rem; color:#888; margin-top:3px;">${itemCount} รายการ</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+          <span class="dash-val">฿${(d.grand||0).toLocaleString()}</span>
+          <button class="dash-day-btn" onclick="loadDayData('${d.date}')" title="โหลดข้อมูลนี้">โหลด 🔄</button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+function showChartTip(e, date, val) {
+  const tip = document.getElementById("chartTooltip");
+  if (!tip) return;
+  tip.textContent = date + "  " + val;
+  tip.style.display = "block";
+  const wrap = document.getElementById("chartWrap");
+  const rect = wrap.getBoundingClientRect();
+  tip.style.left = (e.clientX - rect.left + 8) + "px";
+  tip.style.top = (e.clientY - rect.top - 28) + "px";
+}
+function hideChartTip() {
+  const tip = document.getElementById("chartTooltip");
+  if (tip) tip.style.display = "none";
+}
+
+function loadDayData(dateStr) {
+  const days = Storage.getSavedDays();
+  const dayData = days.find(d => d.date === dateStr);
+  if(dayData && dayData.rows) {
+    currentDate = dateStr;
+    document.getElementById("dateInput").value = dateStr;
+    
+    rows = JSON.parse(JSON.stringify(dayData.rows));
+    initRows(true);
+    switchTab('tab1');
+    showToast("📥 โหลดประวัติ " + dateStr + " เรียบร้อย", "#1976d2");
+  }
+}
+
+// ──────────── ROWS INIT ────────────
+function initRows(keepExisting) {
+  if (!keepExisting) rows = {};
+  sections.forEach(sec => {
+    sec.items.forEach(item => {
+      const k = sec.id + "_" + item;
+      if (!rows[k]) rows[k] = { name: item, sectionId: sec.id, tabId: sec.tabId, isCustom: false, checked: false, unit: "", price: "" };
+    });
+  });
+  
+  TABS.filter(t => t.id !== 'dashboard').forEach(tab => {
+    for (let i = 1; i <= 5; i++) {
+      const k = "custom_" + tab.id + "_" + i;
+      if (!rows[k]) rows[k] = { name: "", sectionId: "custom", tabId: tab.id, isCustom: true, checked: false, unit: "", price: "" };
+    }
+  });
+}
+
+// ──────────── RENDER TABLE ────────────
+function renderTable() {
+  if (currentTab === 'dashboard') return;
+
+  const tbody = document.getElementById("tableBody");
+  tbody.innerHTML = "";
+
+  const activeSections = sections.filter(sec => sec.tabId === currentTab);
+
+  activeSections.forEach(sec => {
+    const htr = document.createElement("tr");
+    htr.className = "sec-hdr";
+    htr.innerHTML = `
+      <td colspan="5" style="color:${sec.color};border-left:3px solid ${sec.color}">
+        <span class="sec-label">${sec.label}</span>
+        <span class="sec-actions">
+          <button class="sec-btn" title="แก้ไขชื่อหมวด" onclick="editSection('${sec.id}')">✏️</button>
+          <button class="sec-btn" title="เพิ่มรายการในหมวดนี้" onclick="addItemToSection('${sec.id}')">＋</button>
+        </span>
+      </td>`;
+    tbody.appendChild(htr);
+
+    Object.entries(rows).filter(([,r]) => r.sectionId === sec.id).forEach(([k, r]) => {
+      tbody.appendChild(makeRow(k, r));
+    });
+
+    const total = Object.values(rows).filter(r => r.sectionId === sec.id)
+      .reduce((a, r) => a + (parseFloat(r.price) || 0), 0);
+    const ttr = document.createElement("tr");
+    ttr.className = "total-row";
+    ttr.innerHTML = `
+      <td style="text-align:right;padding-right:10px">รวม ${sec.label.replace(/[\u0E00-\u0E7FA-Za-z ]/g,"").trim()}</td>
+      <td style="text-align:left;color:#f0a500;padding-left:10px">฿${total.toLocaleString()}</td>
+      <td colspan="3"></td>`;
+    tbody.appendChild(ttr);
+  });
+
+  const ctr = document.createElement("tr");
+  ctr.className = "sec-hdr";
+  ctr.innerHTML = `<td colspan="5" style="color:#f0a500;border-left:3px solid #f0a500">✏️ รายการเพิ่มเติม</td>`;
+  tbody.appendChild(ctr);
+
+  Object.entries(rows).filter(([,r]) => r.isCustom && r.tabId === currentTab).forEach(([k, r]) => {
+    tbody.appendChild(makeCustomRow(k, r));
+  });
+
+  const tabGrand = Object.values(rows).filter(r => r.tabId === currentTab).reduce((a, r) => a + (parseFloat(r.price) || 0), 0);
+  const gtr = document.createElement("tr");
+  gtr.className = "grand-row";
+  gtr.innerHTML = `
+    <td style="text-align:right;padding-right:14px;color:#aaa">ยอดรวมแท็บนี้</td>
+    <td style="text-align:left;color:#f0a500;padding-left:10px">฿${tabGrand.toLocaleString()}</td>
+    <td colspan="3"></td>`;
+  tbody.appendChild(gtr);
+}
+
+// ──────────── BUILD ROW ────────────
+function makeRow(k, r) {
+  const tr = document.createElement("tr");
+  tr.className = "data-row" + (r.checked ? " chk-row" : "");
+  tr.id = "row_" + k;
+  tr.innerHTML = `
+    <td>
+      <div class="item-cell${r.checked ? " done" : ""}" onclick="toggleRow('${k}')">
+        <span class="chk-box${r.checked ? " on" : ""}" onclick="event.stopPropagation();toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
+        <span class="item-name" id="name_${k}" ondblclick="event.stopPropagation();inlineRename('${k}')">${r.name}</span>
+        <button class="sec-btn" style="margin-left:auto;font-size:.7rem;padding:1px 4px;opacity:0.35" title="แก้ชื่อ" onclick="event.stopPropagation();inlineRename('${k}')">✏️</button>
+      </div>
+    </td>
+    <td>
+      <div class="cell-in price-wrap">
+        <input class="cell-in price" type="number" min="0" placeholder="0" value="${r.price || ""}" 
+          onchange="updateRow('${k}','price',this.value)" id="price_${k}">
+        ${speechSupported ? `<button class="mic-btn" id="mic_${k}" title="พูดราคา" onclick="startVoice('${k}')">🎤</button>` : ""}
+      </div>
+    </td>
+    <td><input class="cell-in" type="text" placeholder="-" value="${r.unit || ""}" onchange="updateRow('${k}','unit',this.value)"></td>
+    <td style="text-align:center">
+      <span class="chk-box${r.checked ? " on" : ""}" onclick="toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
+    </td>
+    <td style="text-align:center">
+      <button class="row-del" title="ลบรายการนี้" onclick="deleteRow('${k}')">✕</button>
+    </td>
+  `;
+  return tr;
+}
+
+function inlineRename(k) {
+  const span = document.getElementById("name_" + k);
+  if (!span) return;
+  const oldName = rows[k].name;
+  const input = document.createElement("input");
+  input.value = oldName;
+  input.style.cssText = "background:#242424;border:1px solid #f0a500;color:#e8e8e8;font-family:inherit;font-size:.85rem;padding:2px 6px;border-radius:4px;width:100%;min-width:60px;";
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+
+  function commit() {
+    const newName = input.value.trim() || oldName;
+    sections.forEach(sec => {
+      const idx = sec.items.indexOf(oldName);
+      if (idx !== -1 && sec.id === rows[k].sectionId) sec.items[idx] = newName;
+    });
+    rows[k].name = newName;
+    Storage.saveSections(sections);
+    renderTable();
+    renderSummary();
+    if (newName !== oldName) showToast('✅ เปลี่ยนชื่อเป็น "' + newName + '" แล้ว');
+  }
+  input.addEventListener("blur", commit);
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") input.blur();
+    if (e.key === "Escape") { input.value = oldName; input.blur(); }
+  });
+}
+
+function makeCustomRow(k, r) {
+  const tr = document.createElement("tr");
+  tr.className = "data-row" + (r.checked ? " chk-row" : "");
+  tr.id = "row_" + k;
+  tr.innerHTML = `
+    <td>
+      <div style="display:flex;align-items:center;gap:6px;min-height:32px;padding:0 8px">
+        <span class="chk-box${r.checked ? " on" : ""}" onclick="toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
+        <input class="custom-in" type="text" placeholder="พิมพ์รายการ..." value="${r.name || ""}"
+          onchange="updateRow('${k}','name',this.value)">
+      </div>
+    </td>
+    <td>
+      <div class="cell-in price-wrap">
+        <input class="cell-in price" type="number" min="0" placeholder="0" value="${r.price || ""}"
+          onchange="updateRow('${k}','price',this.value)" id="price_${k}">
+        ${speechSupported ? `<button class="mic-btn" id="mic_${k}" title="พูดราคา" onclick="startVoice('${k}')">🎤</button>` : ""}
+      </div>
+    </td>
+    <td><input class="cell-in" type="text" placeholder="-" value="${r.unit || ""}" onchange="updateRow('${k}','unit',this.value)"></td>
+    <td style="text-align:center">
+      <span class="chk-box${r.checked ? " on" : ""}" onclick="toggleRow('${k}')">${r.checked ? "✓" : ""}</span>
+    </td>
+    <td style="text-align:center">
+      <button class="row-del" title="ลบรายการนี้" onclick="deleteRow('${k}')">✕</button>
+    </td>
+  `;
+  return tr;
+}
+
+// ──────────── ROW OPERATIONS ────────────
+function toggleRow(k) {
+  rows[k].checked = !rows[k].checked;
+  const tr = document.getElementById("row_" + k);
+  if (!tr) return;
+  tr.className = "data-row" + (rows[k].checked ? " chk-row" : "");
+  tr.querySelectorAll(".chk-box").forEach(el => {
+    el.className = "chk-box" + (rows[k].checked ? " on" : "");
+    el.textContent = rows[k].checked ? "✓" : "";
+  });
+  tr.querySelector(".item-cell")?.classList.toggle("done", rows[k].checked);
+  renderSummary();
+}
+
+function updateRow(k, field, val) {
+  rows[k][field] = val;
+  renderSummary();
+  updateSectionTotal(rows[k].sectionId);
+}
+
+function updateSectionTotal(sectionId) {
+  if (!sectionId || sectionId === "custom") return;
+  renderTable(); 
+}
+
+function deleteRow(k) {
+  if (!confirm("ลบรายการนี้?")) return;
+  delete rows[k];
+  
+  let needsSave = false;
+  sections.forEach(sec => {
+    const oldLen = sec.items.length;
+    sec.items = sec.items.filter(item => sec.id + "_" + item !== k);
+    if (sec.items.length !== oldLen) needsSave = true;
+  });
+  if (needsSave) Storage.saveSections(sections);
+
+  renderTable();
+  renderSummary();
+}
+
+// ──────────── SECTION / CUSTOM ITEMS ────────────
+function editSection(secId) {
+  const sec = sections.find(s => s.id === secId);
+  if (!sec) return;
+  openModal("แก้ไขชื่อหมวด", sec.label, val => {
+    if (!val.trim()) return;
+    sec.label = val.trim();
+    Storage.saveSections(sections);
+    renderTable(); 
+    renderSummary();
+  });
+}
+
+function addItemToSection(secId) {
+  const sec = sections.find(s => s.id === secId);
+  openModal("เพิ่มรายการใน " + (sec ? sec.label : ""), "", val => {
+    if (!val.trim()) return;
+    const sec = sections.find(s => s.id === secId);
+    if (!sec) return;
+    sec.items.push(val.trim());
+    const k = secId + "_" + val.trim();
+    rows[k] = { name: val.trim(), sectionId: secId, tabId: currentTab, isCustom: false, checked: false, unit: "", price: "" };
+    Storage.saveSections(sections);
+    renderTable(); 
+    renderSummary(); 
+    showToast("✅ เพิ่ม \"" + val + "\" แล้ว");
+  });
+}
+
+function addSection() {
+  openModal("ชื่อหมวดใหม่", "", val => {
+    if (!val.trim()) return;
+    const newId = "s" + Date.now();
+    sections.push({ id: newId, tabId: currentTab, label: val.trim(), color: "#f0a500", items: [] });
+    Storage.saveSections(sections);
+    renderTable(); 
+    renderSummary(); 
+    showToast("✅ เพิ่มหมวด \"" + val + "\" แล้ว");
+  });
+}
+
+function addCustomRowUI() {
+  const k = "custom_" + currentTab + "_" + Date.now();
+  rows[k] = { name: "", sectionId: "custom", tabId: currentTab, isCustom: true, checked: false, unit: "", price: "" };
+  renderTable();
+  setTimeout(() => {
+    const grid = document.querySelector('.grid');
+    grid.scrollTop = grid.scrollHeight;
+  }, 50);
+}
+
+// ──────────── SINGLE VOICE INPUT ────────────
+function startVoice(rowKey) {
+  if (!speechSupported) { showToast("❌ เบราว์เซอร์นี้ไม่รองรับ Voice"); return; }
+
+  if (activeRecognition) {
+    activeRecognition.stop();
+    activeRecognition = null;
+    document.querySelectorAll(".mic-btn.active").forEach(b => b.classList.remove("active"));
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SpeechRecognition();
+  rec.lang = "th-TH";
+  rec.interimResults = false;
+  rec.maxAlternatives = 3;
+
+  const micBtn = document.getElementById("mic_" + rowKey);
+  if (micBtn) micBtn.classList.add("active");
+  activeRecognition = rec;
+  setStatus("🎤 กำลังฟัง... พูดตัวเลขราคา", "loading");
+
+  rec.onresult = e => {
+    const results = Array.from(e.results[0]).map(r => r.transcript.trim());
+    let num = null;
+    for (const transcript of results) {
+      const extracted = extractNumber(transcript);
+      if (extracted !== null) { num = extracted; break; }
+    }
+    if (num !== null) {
+      rows[rowKey].price = String(num);
+      const inp = document.getElementById("price_" + rowKey);
+      if (inp) inp.value = num;
+      renderSummary();
+      setStatus("✅ รับราคา: ฿" + num.toLocaleString(), "ok");
+      setTimeout(() => setStatus(""), 2000);
+    } else {
+      setStatus("❓ ไม่เข้าใจ: \"" + results[0] + "\" — ลองพูดใหม่", "err");
+      setTimeout(() => setStatus(""), 3000);
+    }
+  };
+
+  rec.onerror = e => {
+    setStatus("❌ ไมค์ผิดพลาด: " + e.error, "err");
+    setTimeout(() => setStatus(""), 3000);
+  };
+
+  rec.onend = () => {
+    activeRecognition = null;
+    if (micBtn) micBtn.classList.remove("active");
+  };
+
+  rec.start();
+}
+
+function extractNumber(text) {
+  const thaiNums = {"ศูนย์":0,"หนึ่ง":1,"สอง":2,"สาม":3,"สี่":4,"ห้า":5,"หก":6,"เจ็ด":7,"แปด":8,"เก้า":9,
+    "สิบ":10,"ยี่สิบ":20,"สามสิบ":30,"สี่สิบ":40,"ห้าสิบ":50,"หกสิบ":60,"เจ็ดสิบ":70,"แปดสิบ":80,"เก้าสิบ":90,
+    "ร้อย":100,"พัน":1000,"หมื่น":10000};
+  let t = text.replace(/บาท|ราคา|฿/g,"").trim();
+  const match = t.match(/[\d,]+/);
+  if (match) return parseFloat(match[0].replace(/,/g,""));
+  for (const [word, val] of Object.entries(thaiNums)) {
+    if (t === word) return val;
+  }
+  return null;
+}
+
+// ──────────── BATCH VOICE INPUT (พูดรวดเดียว) ────────────
+function startBatchVoice() {
+  if (!speechSupported) { showToast("❌ เบราว์เซอร์ไม่รองรับ Voice", "#d32f2f"); return; }
+  
+  batchTranscript = "";
+  batchLastIndex = 0; // รีเซ็ตตัวชี้วัดทุกครั้งที่เริ่มฟังใหม่
+  
+  document.getElementById("voiceTranscript").textContent = "...กำลังรอเสียง...";
+  document.getElementById("voiceStatusTitle").innerHTML = "🎤 กำลังฟัง (พูดรวดเดียว)...";
+  document.getElementById("voiceModalBg").classList.add("show");
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  batchRec = new SpeechRecognition();
+  batchRec.lang = "th-TH";
+  batchRec.continuous = true;
+  batchRec.interimResults = true;
+  
+  // เก็บ index ที่ isFinal แล้ว เพื่อไม่ให้ประมวลผลซ้ำ
+  const finalizedIndexes = new Set();
+
+  batchRec.onresult = (e) => {
+      let interim = "";
+
+      // ป้องกันบัก Android ที่ reset resultIndex
+      if (e.resultIndex === 0 && e.results.length < batchLastIndex) {
+          batchLastIndex = 0;
+          finalizedIndexes.clear();
+      }
+
+      for (let i = 0; i < e.results.length; i++) {
+          let transcript = e.results[i][0].transcript.trim();
+          if (e.results[i].isFinal) {
+              // เพิ่มเฉพาะ index ที่ยังไม่เคยเพิ่มเลย
+              if (!finalizedIndexes.has(i)) {
+                  finalizedIndexes.add(i);
+                  batchTranscript += transcript + " ";
+                  batchLastIndex = i + 1;
+              }
+          } else {
+              // แสดง interim เฉพาะ result ล่าสุด ไม่สะสม
+              if (i === e.results.length - 1) {
+                  interim = transcript;
+              }
+          }
+      }
+
+      document.getElementById("voiceTranscript").textContent = batchTranscript + (interim ? " " + interim : "");
+  };
+  
+  batchRec.onerror = (e) => {
+      document.getElementById("voiceStatusTitle").innerHTML = "❌ ผิดพลาด: " + e.error;
+  };
+  
+  batchRec.onend = () => {
+      if(document.getElementById("voiceModalBg").classList.contains("show")) {
+          document.getElementById("voiceStatusTitle").innerHTML = "⏸️ หยุดฟังแล้ว (กำลังประมวลผล...)";
+      }
+  };
+  
+  batchRec.start();
+}
+
+function cancelBatchVoice() {
+  if (batchRec) {
+      batchRec.stop();
+      batchRec = null;
+  }
+  document.getElementById("voiceModalBg").classList.remove("show");
+}
+
+function stopBatchVoice() {
+  if (batchRec) {
+      batchRec.stop();
+      batchRec = null;
+  }
+  document.getElementById("voiceModalBg").classList.remove("show");
+  
+  if (batchTranscript.trim()) {
+      processBatchTranscript(batchTranscript);
+  }
+}
+
+// ตัดคำและจับคู่แบบ Fuzzy
+function processBatchTranscript(text) {
+  let cleaned = text.replace(/บาท|ราคา|ละ|กิโล/g, " ");
+  
+  // ใช้ Regex แยก (ข้อความ) และ (ตัวเลข) ที่อยู่ติดกัน
+  const regex = /([^\d]+)(\d+)/g;
+  let match;
+  const updates = [];
+  
+  while ((match = regex.exec(cleaned)) !== null) {
+      let itemNameRaw = match[1].trim();
+      let price = match[2];
+      
+      if (itemNameRaw && price) {
+          // ดักกรองคำซ้ำอีก 1 ชั้น เผื่อระบบอ่านมาเป็น "หมู หมู 100"
+          let words = itemNameRaw.split(/\s+/);
+          let uniqueWords = [...new Set(words)]; 
+          itemNameRaw = uniqueWords.join(" ");
+          
+          let matchedKey = findBestMatch(itemNameRaw);
+          if (matchedKey) {
+              updates.push({ key: matchedKey, name: rows[matchedKey].name, price: price });
+          }
+      }
+  }
+  
+  if (updates.length > 0) {
+      updates.forEach(u => {
+          rows[u.key].price = u.price;
+          rows[u.key].checked = true; // ติ๊กถูกให้อัตโนมัติ
+      });
+      renderTable();
+      renderSummary();
+      
+      const names = updates.map(u => u.name).join(", ");
+      showToast(`✅ อัปเดต ${updates.length} รายการ: ${names}`, "#2e7d32");
+  } else {
+      showToast("⚠️ ไม่พบรายการและราคาที่ตรงกัน (ลองพูดใหม่ดูครับ)", "#f57c00");
+  }
+}
+
+// อัลกอริทึมเดาชื่อสินค้า
+function findBestMatch(spokenText) {
+  let bestKey = null;
+  let maxMatchCount = 0;
+  
+  // เอาคำสร้อยออก และตัดช่องว่างทิ้งหมด
+  let text = spokenText.replace(/ซื้อ|เอา|เพิ่ม|ไซส์|ขนาด/g, '').replace(/\s+/g, '');
+  if(!text) return null;
+  
+  for (let k in rows) {
+      let itemName = rows[k].name;
+      if (!itemName) continue;
+      
+      let itemClean = itemName.replace(/\s+/g, '');
+      
+      // 1. ตรงเป๊ะๆ
+      if (itemClean === text) return k;
+      
+      // 2. ตรงบางส่วน
+      if (itemClean.includes(text) || text.includes(itemClean)) {
+          let score = Math.min(itemClean.length, text.length);
+          if (score > maxMatchCount && score >= 2) {
+              maxMatchCount = score;
+              bestKey = k;
+          }
+      }
+  }
+  return bestKey;
+}
+
+// ──────────── SAVE (ผูกกับ Google Sheet) ────────────
+async function saveDay() {
+  const grand = Object.values(rows).reduce((a, r) => a + (parseFloat(r.price) || 0), 0);
+  
+  const hasData = Object.values(rows).some(r => r.checked || parseFloat(r.price) > 0);
+  if (!hasData) { showToast("⚠️ ยังไม่มีรายการที่เลือกหรือใส่ราคา"); return; }
+  
+  setStatus("⏳ กำลังบันทึกไปที่ Google Sheet...", "loading");
+  document.getElementById("btnSave").disabled = true;
+
+  const payloadItems = [];
+  Object.values(rows).forEach(r => {
+     if ((r.checked || parseFloat(r.price) > 0) && r.name.trim() !== "") {
+         const sec = sections.find(s => s.id === r.sectionId);
+         // ถ้าเป็นรายการเพิ่มเอง (ไม่มี sectionId หรือหา section ไม่เจอ) ให้ใช้ชื่อหมวดแรกของแท็บนั้นแทน
+         let secName = "รายการเพิ่มเติม";
+         if (sec) {
+           secName = sec.label;
+         } else {
+           const fallbackSec = sections.find(s => s.tabId === r.tabId);
+           if (fallbackSec) secName = fallbackSec.label;
+         }
+
+         const tabDef = TABS.find(t => t.id === r.tabId);
+         const tabName = tabDef ? tabDef.name.replace(/[^ก-ฮะ-์a-zA-Z0-9 ]/g, '').trim() : "ตลาด 1";
+
+         payloadItems.push({
+             tab: tabName,
+             section: secName,
+             name: r.name,
+             price: parseFloat(r.price) || 0,
+             unit: r.unit || "",
+             checked: r.checked
+         });
+     }
+  });
+
+  const payload = {
+      date: currentDate,
+      grand: grand,
+      items: payloadItems
+  };
+
+  try {
+      const count = Storage.saveDayData(currentDate, rows, grand);
+      savedDays = Storage.getSavedDays();
+      if(currentTab === 'dashboard') renderDashboard(); else renderDays();
+
+      const response = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      if (result.status === "success") {
+          showToast("✅ บันทึกและอัปเดต Sheet สำเร็จ", "#2e7d32");
+          setStatus("✅ บันทึกข้อมูลและลบของเก่าใน Google Sheet เรียบร้อย", "ok");
+      } else {
+          throw new Error(result.message);
+      }
+  } catch(e) {
+      console.error(e);
+      setStatus("❌ บันทึก Sheet ไม่สำเร็จ แต่เก็บลงเครื่องแล้ว", "err");
+      showToast("❌ Google Sheet Error", "#d32f2f");
+  }
+  
+  document.getElementById("btnSave").disabled = false;
+  setTimeout(() => setStatus(""), 5000);
+}
+
+// ──────────── ลบรายการซ้ำ ────────────
+function removeDuplicateRows() {
+  // ลบเฉพาะแถวที่ ชื่อ + ราคา + หน่วย เหมือนกันทุกอย่าง
+  const seen = {};
+  const toDelete = [];
+
+  Object.entries(rows).forEach(([k, r]) => {
+    const key = (r.tabId || "tab1") + "|" + r.name.trim().toLowerCase() + "|" + (parseFloat(r.price) || 0) + "|" + (r.unit || "").trim().toLowerCase();
+    if (seen[key]) {
+      toDelete.push(k);
+    } else {
+      seen[key] = true;
+    }
+  });
+
+  toDelete.forEach(k => delete rows[k]);
+
+  if (toDelete.length > 0) {
+    Storage.saveRows(rows);
+    renderTable();
+    renderSummary();
+    showToast(`🗑️ ลบรายการซ้ำออก ${toDelete.length} รายการ`, "#e65100");
+  } else {
+    showToast("✅ ไม่พบรายการซ้ำ");
+  }
+}
+
+// ──────────── เปิด Google Sheet ────────────
+function openSheet() {
+  window.open(SHEET_URL, "_blank");
+}
+
+function resetDay() {
+  if (!confirm("ล้างข้อมูลวันนี้ของทุกแท็บ?")) return;
+  Object.values(rows).forEach(r => { r.checked = false; r.unit = ""; r.price = ""; });
+  renderTable();
+  renderSummary();
+}
+
+// ──────────── DAYS ────────────
+function renderDays() {
+  const el = document.getElementById("daysChips");
+  if (savedDays.length === 0) { el.innerHTML = '<span class="days-empty">ยังไม่มี</span>'; return; }
+  el.innerHTML = savedDays.map(d => `
+    <div class="day-chip" title="฿${(d.grand||0).toLocaleString()}">
+      <span class="dt">${d.date}</span>
+      <span style="color:#888;font-size:.68rem">฿${(d.grand||0).toLocaleString()}</span>
+      <span class="day-del" onclick="removeSavedDay('${d.date}')">✕</span>
+    </div>`).join("");
+}
+
+function removeSavedDay(dateStr) {
+  if (!confirm("ลบวันที่ " + dateStr + " ออกจากระบบ?")) return;
+  Storage.deleteDay(dateStr);
+  savedDays = Storage.getSavedDays();
+  renderDays();
+  if (currentTab === 'dashboard') renderDashboard();
+  showToast("🗑️ ลบวัน " + dateStr + " แล้ว");
+}
+
+// ──────────── SUMMARY ────────────
+function renderSummary() {
+  let total = 0, checked = 0, grand = 0;
+  Object.values(rows).forEach(r => {
+    if (!r.isCustom || r.name) { total++; if (r.checked) checked++; }
+    grand += parseFloat(r.price) || 0;
+  });
+  document.getElementById("sumTotal").textContent = total;
+  document.getElementById("sumChecked").textContent = checked;
+  document.getElementById("sumGrand").textContent = "฿" + grand.toLocaleString();
+  
+  const hasData = Object.values(rows).some(r => r.checked || parseFloat(r.price) > 0);
+  document.getElementById("btnSave").disabled = !hasData;
+}
+
+// ──────────── MODAL ────────────
+function openModal(title, defaultVal, cb) {
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalInput").value = defaultVal || "";
+  document.getElementById("modalBg").classList.add("show");
+  document.getElementById("modalInput").focus();
+  modalCallback = cb;
+}
+function closeModal() { document.getElementById("modalBg").classList.remove("show"); modalCallback = null; }
+function confirmModal() {
+  const val = document.getElementById("modalInput").value;
+  closeModal();
+  if (modalCallback) modalCallback(val);
+}
+document.getElementById("modalInput").addEventListener("keydown", e => { if (e.key === "Enter") confirmModal(); });
+
+// ──────────── UI HELPERS ────────────
+function setStatus(msg, type) {
+  const el = document.getElementById("statusBar");
+  el.textContent = msg;
+  el.className = "status-bar" + (type ? " " + type : "");
+}
+function showToast(msg, color) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = color || "#333";
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
